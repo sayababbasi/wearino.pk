@@ -21,6 +21,10 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "WEARINO | Define Your Style",
   description: "Define Your Style, Wear Confidence. Shop the latest fashion trends at wearino.pk",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({

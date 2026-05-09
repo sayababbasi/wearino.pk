@@ -8,8 +8,6 @@ const skirtLengths = ['Mini', 'Midi', 'Maxi'];
 const sleeveLengths = ['Sleeveless', 'Short Sleeve', 'Long Sleeve', '3/4 Sleeve'];
 const productTypes = ['Shirt', 'Dress', 'Pants', 'Jacket', 'Shoes'];
 
-<<<<<<< HEAD
-=======
 // Product data matching images
 const productData = [
   { imageId: '1521572163474-6864f9cf17ab', name: 'Classic White Tee', description: 'A timeless classic white tee made from premium cotton. Perfect for everyday wear and easy to style with any outfit.', type: 'Shirt', dept: 'Women' },
@@ -29,17 +27,11 @@ const productData = [
   { imageId: '1515889571694-4b1b0b0b0b0b', name: 'Trendy Outfit', description: 'On-trend outfit piece with modern aesthetics. Versatile and stylish for any fashion-forward wardrobe.', type: 'Dress', dept: 'Women' },
 ];
 
->>>>>>> origin/feature/flutter-mobile-app
 // Generate a single product with deterministic values
 const generateProduct = (index: number) => {
   const seed = index + 1;
   const priceBase = 20 + (seed % 130);
   const ratingBase = 4 + (seed % 10) / 10;
-<<<<<<< HEAD
-  const deptIndex = seed % departments.length;
-  const brandIndex = seed % brands.length;
-  const catIndex = seed % categories.length;
-=======
   
   // Get product data matching the image
   const productInfo = productData[seed % productData.length];
@@ -62,7 +54,6 @@ const generateProduct = (index: number) => {
     ? categories.indexOf(mappedCategory) 
     : 0;
   const brandIndex = seed % brands.length;
->>>>>>> origin/feature/flutter-mobile-app
   const colorIndex = seed % colors.length;
   const sizeIndex1 = seed % sizes.length;
   const sizeIndex2 = (seed + 1) % sizes.length;
@@ -70,33 +61,19 @@ const generateProduct = (index: number) => {
   
   return {
     product_id: `${seed}`,
-<<<<<<< HEAD
-    name: `Product ${seed} ${productTypes[seed % productTypes.length]}`,
-    description: 'High quality product with excellent features and premium materials. Perfect for everyday wear.',
-    price: priceBase,
-    image: `https://images.unsplash.com/photo-${1515372039744 + index * 10}?w=400`,
-    rating: ratingBase,
-    category_name: departments[deptIndex],
-=======
     name: productInfo.name,
     description: productInfo.description,
     price: priceBase,
     image: `https://images.unsplash.com/photo-${productInfo.imageId}?w=400&h=600&fit=crop`,
     rating: ratingBase,
     category_name: productInfo.dept,
->>>>>>> origin/feature/flutter-mobile-app
     category_id: `${(deptIndex % 4) + 1}`,
     tags: seed % 3 === 0 ? ['New'] : seed % 5 === 0 ? ['Sale'] : [],
     discount: seed % 5 === 0 ? 40 + (seed % 20) : undefined,
     // Additional filter attributes
     brand: brands[brandIndex],
-<<<<<<< HEAD
-    department: departments[deptIndex],
-    productCategory: categories[catIndex],
-=======
     department: productInfo.dept,
     productCategory: mappedCategory,
->>>>>>> origin/feature/flutter-mobile-app
     availableSizes: [sizes[sizeIndex1], sizes[sizeIndex2]],
     color: colors[colorIndex],
     skirtLength: seed % 3 === 0 ? skirtLengths[seed % skirtLengths.length] : undefined,
@@ -129,14 +106,6 @@ export const getProductById = (id: string) => {
   // Generate additional images for the product
   const productIndex = parseInt(id) || 0;
   const seed = productIndex;
-<<<<<<< HEAD
-  const baseImageId = 1515372039744 + (productIndex - 1) * 10;
-  const images = [
-    baseProduct.image,
-    `https://images.unsplash.com/photo-${baseImageId + 1}?w=800`,
-    `https://images.unsplash.com/photo-${baseImageId + 2}?w=800`,
-    `https://images.unsplash.com/photo-${baseImageId + 3}?w=800`,
-=======
   
   // Valid Unsplash photo IDs for fashion/clothing products
   const validImageIds = [
@@ -156,7 +125,6 @@ export const getProductById = (id: string) => {
     `https://images.unsplash.com/photo-${validImageIds[(baseImageIndex + 1) % validImageIds.length]}?w=800&h=1200&fit=crop`,
     `https://images.unsplash.com/photo-${validImageIds[(baseImageIndex + 2) % validImageIds.length]}?w=800&h=1200&fit=crop`,
     `https://images.unsplash.com/photo-${validImageIds[(baseImageIndex + 3) % validImageIds.length]}?w=800&h=1200&fit=crop`,
->>>>>>> origin/feature/flutter-mobile-app
   ];
 
   // Generate detailed product information with deterministic values
@@ -206,4 +174,3 @@ export const getRelatedProducts = (productId: string, limit: number = 4) => {
     )
     .slice(0, limit);
 };
-

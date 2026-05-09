@@ -150,7 +150,7 @@ export default function AdminLayout({
       {/* Fallback banner when no announcement */}
       {(!announcement || !announcement.isActive) && (
         <div className="fixed top-0 left-0 right-0 h-[52px] bg-gray-900 text-white flex items-center justify-center text-sm uppercase z-[60] print:hidden">
-          <p>WEARINO ADMIN</p>
+          <img src="/logo.png" alt="WEARINO ADMIN" className="h-6 w-auto brightness-0 invert" />
         </div>
       )}
 
@@ -170,8 +170,8 @@ export default function AdminLayout({
         <div className="h-full flex flex-col">
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
-            <Link href="/admin" className="text-xl font-bold uppercase tracking-tighter">
-              WEARINO
+            <Link href="/admin" className="block">
+              <img src="/logo.png" alt="WEARINO" className="h-12 w-auto object-contain" />
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}

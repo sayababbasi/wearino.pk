@@ -13,13 +13,21 @@ export default function ContentManagementPage() {
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [influencers, setInfluencers] = useState<any[]>([]);
+  const [categoryFeatures, setCategoryFeatures] = useState<any[]>([]);
   const [announcement, setAnnouncement] = useState({
     id: '',
     enabled: false,
     text: '',
     backgroundColor: '#000000',
     textColor: '#ffffff',
-    sliding: false
+    sliding: false,
+    barStyle: 'single' as 'single' | 'triple', // 'single' = center text/marquee, 'triple' = 3-column info bar
+    leftText: '',
+    leftIcon: '🚚',
+    centerText: '',
+    centerIcon: '💳',
+    rightText: '',
+    rightIcon: '📞',
   });
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; contentId: string | null }>({
     isOpen: false,
@@ -77,6 +85,12 @@ export default function ContentManagementPage() {
       const fetchedBrands = allContent.filter((c: any) => c.type === 'brand');
       setBrands(fetchedBrands);
 
+      // Filter Category Features
+      const fetchedCategoryFeatures = allContent.filter((c: any) => c.type === 'category_feature');
+      // Sort by order
+      fetchedCategoryFeatures.sort((a: any, b: any) => a.order - b.order);
+      setCategoryFeatures(fetchedCategoryFeatures);
+
       // Filter Influencers
       const fetchedInfluencers = allContent.filter((c: any) => c.type === 'influencer');
       setInfluencers(fetchedInfluencers);
@@ -100,6 +114,13 @@ export default function ContentManagementPage() {
           backgroundColor: (parsedMeta as any).backgroundColor || '#000000',
           textColor: (parsedMeta as any).textColor || '#ffffff',
           sliding: (parsedMeta as any).sliding || false,
+          barStyle: (parsedMeta as any).barStyle || 'single',
+          leftText: (parsedMeta as any).leftText || '',
+          leftIcon: (parsedMeta as any).leftIcon || '🚚',
+          centerText: (parsedMeta as any).centerText || '',
+          centerIcon: (parsedMeta as any).centerIcon || '💳',
+          rightText: (parsedMeta as any).rightText || '',
+          rightIcon: (parsedMeta as any).rightIcon || '📞',
         });
       }
     } catch (error) {
@@ -139,6 +160,7 @@ export default function ContentManagementPage() {
     let type = 'banner';
     if (activeTab === 'brands') type = 'brand';
     if (activeTab === 'influencers') type = 'influencer';
+    if (activeTab === 'category_features') type = 'category_feature';
 
     data.append('type', type);
     data.append('title', formData.title);
@@ -178,12 +200,19 @@ export default function ContentManagementPage() {
   const handleAnnouncementSave = async () => {
     const data = {
       type: 'announcement',
-      title: announcement.text,
+      title: announcement.barStyle === 'triple' ? announcement.centerText : announcement.text,
       isActive: announcement.enabled,
       meta: JSON.stringify({
         backgroundColor: announcement.backgroundColor,
         textColor: announcement.textColor,
-        sliding: announcement.sliding
+        sliding: announcement.sliding,
+        barStyle: announcement.barStyle,
+        leftText: announcement.leftText,
+        leftIcon: announcement.leftIcon,
+        centerText: announcement.centerText,
+        centerIcon: announcement.centerIcon,
+        rightText: announcement.rightText,
+        rightIcon: announcement.rightIcon,
       })
     };
 
@@ -347,6 +376,7 @@ export default function ContentManagementPage() {
     { id: 'featured', label: 'Featured Products' },
     { id: 'brands', label: 'Brands' },
     { id: 'influencers', label: 'Influencers' },
+    { id: 'category_features', label: 'Category Features' },
     { id: 'announcement', label: 'Announcement Bar' },
   ];
 
@@ -635,124 +665,200 @@ export default function ContentManagementPage() {
             </div>
           )}
 
+          {/* Category Features Tab */}
+          {activeTab === 'category_features' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <p className="text-gray-600">Manage items for the category feature highlight section</p>
+                <button
+                  onClick={() => { resetForm(); setShowBannerModal(true); }}
+                  className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
+                >
+                  <Plus size={20} />
+                  Add Category Feature
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {categoryFeatures.map((feature) => (
+                  <div key={feature.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow bg-white flex items-center p-4 gap-4">
+                    <div className="w-16 h-16 bg-gray-100 rounded flex-shrink-0 relative group">
+                      <img
+                        src={apiClient.getImageUrl(feature.imageUrl) || 'https://via.placeholder.com/150?text=No+Image'}
+                        alt={feature.title}
+                        className="w-full h-full object-contain p-1"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 text-sm truncate">{feature.title}</h3>
+                      <p className="text-xs text-gray-500 truncate mb-2">
+                        {typeof feature.meta === 'string' ? JSON.parse(feature.meta).subtitle : feature.meta?.subtitle || ''}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEditModal(feature)}
+                          className="flex-1 p-1.5 border border-gray-300 rounded hover:bg-gray-50 text-gray-700 flex justify-center items-center"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(feature.id)}
+                          className="flex-1 p-1.5 border border-gray-300 rounded hover:bg-red-50 text-red-600 flex justify-center items-center"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {categoryFeatures.length === 0 && (
+                  <div className="col-span-full py-12 text-center text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                    <p>No category features found. Add one to display the features section.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+
           {/* Announcement Bar Tab */}
           {activeTab === 'announcement' && (
             <div className="space-y-6">
               <p className="text-gray-600">Configure the announcement bar at the top of your site</p>
 
-              <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-                <div className="flex items-center justify-between mb-6">
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 space-y-6">
+
+                {/* Enable toggle */}
+                <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">Enable Announcement Bar</h3>
                     <p className="text-sm text-gray-500">Show announcement at the top of every page</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={announcement.enabled}
-                      onChange={(e) => setAnnouncement({ ...announcement, enabled: e.target.checked })}
-                      className="sr-only peer"
-                    />
+                    <input type="checkbox" checked={announcement.enabled} onChange={(e) => setAnnouncement({ ...announcement, enabled: e.target.checked })} className="sr-only peer" />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-900"></div>
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between mb-6 border-t pt-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">Enable Sliding Text</h3>
-                    <p className="text-sm text-gray-500">Animate text from right to left (Marquee)</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={announcement.sliding}
-                      onChange={(e) => setAnnouncement({ ...announcement, sliding: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-900"></div>
-                  </label>
-                </div>
-
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Announcement Text
-                  </label>
-                  <input
-                    type="text"
-                    value={announcement.text}
-                    onChange={(e) => setAnnouncement({ ...announcement, text: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-                    placeholder="Enter announcement text..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                      Background Color
+                {/* Bar Style */}
+                <div className="border-t pt-6">
+                  <h3 className="text-base font-bold text-gray-900 mb-3">Bar Style</h3>
+                  <div className="flex gap-4">
+                    <label className={`flex-1 border-2 rounded-lg p-3 cursor-pointer transition-colors ${announcement.barStyle === 'single' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
+                      <input type="radio" name="barStyle" value="single" checked={announcement.barStyle === 'single'} onChange={() => setAnnouncement({ ...announcement, barStyle: 'single' })} className="sr-only" />
+                      <p className="font-semibold text-sm text-gray-900">📢 Single Text</p>
+                      <p className="text-xs text-gray-500 mt-0.5">One centered message (with optional marquee)</p>
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={announcement.backgroundColor}
-                        onChange={(e) => setAnnouncement({ ...announcement, backgroundColor: e.target.value })}
-                        className="w-12 h-10 p-1 border border-gray-300 rounded cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={announcement.backgroundColor}
-                        onChange={(e) => setAnnouncement({ ...announcement, backgroundColor: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      />
+                    <label className={`flex-1 border-2 rounded-lg p-3 cursor-pointer transition-colors ${announcement.barStyle === 'triple' ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
+                      <input type="radio" name="barStyle" value="triple" checked={announcement.barStyle === 'triple'} onChange={() => setAnnouncement({ ...announcement, barStyle: 'triple' })} className="sr-only" />
+                      <p className="font-semibold text-sm text-gray-900">📋 3-Column Info Bar</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Left / Center / Right info (like reference design)</p>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Single style settings */}
+                {announcement.barStyle === 'single' && (
+                  <div className="border-t pt-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900">Enable Sliding Marquee</h3>
+                        <p className="text-sm text-gray-500">Animate text from right to left</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={announcement.sliding} onChange={(e) => setAnnouncement({ ...announcement, sliding: e.target.checked })} className="sr-only peer" />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-900"></div>
+                      </label>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Announcement Text</label>
+                      <input type="text" value={announcement.text} onChange={(e) => setAnnouncement({ ...announcement, text: e.target.value })} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent" placeholder="e.g., Get 15% Off Your First Order" />
                     </div>
                   </div>
+                )}
 
+                {/* Triple style settings */}
+                {announcement.barStyle === 'triple' && (
+                  <div className="border-t pt-6 space-y-4">
+                    <p className="text-sm text-gray-500">Enter icon (emoji) and text for each column</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Left */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Left Column</label>
+                        <input type="text" value={announcement.leftIcon} onChange={(e) => setAnnouncement({ ...announcement, leftIcon: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Icon emoji e.g. 🚚" />
+                        <input type="text" value={announcement.leftText} onChange={(e) => setAnnouncement({ ...announcement, leftText: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="e.g. Free Delivery on Orders Above PKR 2500" />
+                      </div>
+                      {/* Center */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Center Column</label>
+                        <input type="text" value={announcement.centerIcon} onChange={(e) => setAnnouncement({ ...announcement, centerIcon: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Icon emoji e.g. 💳" />
+                        <input type="text" value={announcement.centerText} onChange={(e) => setAnnouncement({ ...announcement, centerText: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="e.g. Cash on Delivery Across Pakistan" />
+                      </div>
+                      {/* Right */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide">Right Column</label>
+                        <input type="text" value={announcement.rightIcon} onChange={(e) => setAnnouncement({ ...announcement, rightIcon: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Icon emoji e.g. 📞" />
+                        <input type="text" value={announcement.rightText} onChange={(e) => setAnnouncement({ ...announcement, rightText: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="e.g. +92 300 1234567 | support@wearino.pk" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Colors */}
+                <div className="border-t pt-6 grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">
-                      Text Color
-                    </label>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">Background Color</label>
                     <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={announcement.textColor}
-                        onChange={(e) => setAnnouncement({ ...announcement, textColor: e.target.value })}
-                        className="w-12 h-10 p-1 border border-gray-300 rounded cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={announcement.textColor}
-                        onChange={(e) => setAnnouncement({ ...announcement, textColor: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                      />
+                      <input type="color" value={announcement.backgroundColor} onChange={(e) => setAnnouncement({ ...announcement, backgroundColor: e.target.value })} className="w-12 h-10 p-1 border border-gray-300 rounded cursor-pointer" />
+                      <input type="text" value={announcement.backgroundColor} onChange={(e) => setAnnouncement({ ...announcement, backgroundColor: e.target.value })} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">Text Color</label>
+                    <div className="flex gap-2">
+                      <input type="color" value={announcement.textColor} onChange={(e) => setAnnouncement({ ...announcement, textColor: e.target.value })} className="w-12 h-10 p-1 border border-gray-300 rounded cursor-pointer" />
+                      <input type="text" value={announcement.textColor} onChange={(e) => setAnnouncement({ ...announcement, textColor: e.target.value })} className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                     </div>
                   </div>
                 </div>
 
-                {/* Preview */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700">Preview</label>
+                {/* Preview — exactly matches the Header render */}
+                <div className="border-t pt-6">
+                  <label className="block text-sm font-medium mb-2 text-gray-700">Live Preview <span className="text-xs text-gray-400 font-normal">(identical to storefront)</span></label>
                   <div
-                    className="relative overflow-hidden text-center py-4 text-sm uppercase transition-colors duration-300 rounded-md shadow-sm border border-gray-200"
-                    style={{
-                      backgroundColor: announcement.backgroundColor,
-                      color: announcement.textColor,
-                    }}
+                    className="overflow-hidden py-1.5 text-[10.5px] tracking-[0.12em] font-semibold uppercase"
+                    style={{ backgroundColor: announcement.backgroundColor, color: announcement.textColor }}
                   >
-                    {announcement.sliding ? (
-                      <div className="marquee-container overflow-hidden whitespace-nowrap">
-                        <p className="animate-marquee inline-block">{announcement.text || "Your announcement text here"}</p>
+                    {announcement.barStyle === 'triple' ? (
+                      /* Same as Header: 3-column with container padding */
+                      <div className="container-custom flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          {announcement.leftIcon && <span>{announcement.leftIcon}</span>}
+                          {announcement.leftText || 'Left info text'}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          {announcement.centerIcon && <span>{announcement.centerIcon}</span>}
+                          {announcement.centerText || 'Center info text'}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          {announcement.rightIcon && <span>{announcement.rightIcon}</span>}
+                          {announcement.rightText || 'Right info text'}
+                        </span>
+                      </div>
+                    ) : announcement.sliding ? (
+                      /* Same as Header: single marquee centered */
+                      <div className="marquee-container overflow-hidden whitespace-nowrap text-center">
+                        <p className="animate-marquee inline-block">{announcement.text || 'Your announcement text here'}</p>
                       </div>
                     ) : (
-                      <p>{announcement.text || "Your announcement text here"}</p>
+                      /* Same as Header: single static centered */
+                      <p className="text-center">{announcement.text || 'Your announcement text here'}</p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex gap-4 pt-4">
-                  <button
-                    onClick={handleAnnouncementSave}
-                    className="bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
-                  >
+                <div className="flex gap-4 pt-2">
+                  <button onClick={handleAnnouncementSave} className="bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2">
                     <Save size={18} />
                     Save Configuration
                   </button>

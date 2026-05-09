@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { api } from '@/src/lib/api';
-import { Printer, MapPin, Phone, Package, Truck } from 'lucide-react';
+import { Printer, MapPin, Phone, Package, Truck, Download } from 'lucide-react';
 
 export default function ShippingLabelPage() {
     const params = useParams();
     const orderId = params?.id as string;
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
         const fetchOrder = async () => {
@@ -34,25 +35,81 @@ export default function ShippingLabelPage() {
 
     const orderNumber = order.orderNumber.startsWith('#') ? order.orderNumber : `#${order.orderNumber}`;
 
+    const handleDownload = async () => {
+        const { toPng } = await import('html-to-image');
+        const { jsPDF } = await import('jspdf');
+        
+        setDownloading(true);
+        const element = document.getElementById('shipping-label');
+        if (!element) return;
+
+        try {
+            const dataUrl = await toPng(element, { 
+                quality: 1, 
+                backgroundColor: '#ffffff',
+                pixelRatio: 2,
+                style: {
+                    margin: '0',
+                    transform: 'none',
+                    left: '0',
+                    top: '0',
+                    width: '400px',
+                    boxShadow: 'none'
+                }
+            });
+
+            // Calculate precise dimensions to eliminate white margins
+            // 1 pixel = ~0.264583 mm. We divide by 2 because pixelRatio is 2.
+            const mmPerPixel = 0.264583 / 2;
+            const tempPdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = tempPdf.getImageProperties(dataUrl);
+            
+            const exactWidth = imgProps.width * mmPerPixel;
+            const exactHeight = imgProps.height * mmPerPixel;
+            
+            // Generate a custom-sized PDF that perfectly wraps the label
+            const pdf = new jsPDF('p', 'mm', [exactWidth, exactHeight]);
+            pdf.addImage(dataUrl, 'PNG', 0, 0, exactWidth, exactHeight, undefined, 'FAST');
+            pdf.save(`ShippingLabel-${order.orderNumber}.pdf`);
+        } catch (err) {
+            console.error("Failed to download shipping label", err);
+        } finally {
+            setDownloading(false);
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-gray-200 py-10 px-4 print:bg-white print:py-0 print:px-0 flex justify-center items-start">
+        <div className="min-h-screen bg-gray-200 py-10 px-4 print:bg-white print:py-0 print:px-0 flex flex-col items-center pt-24 md:pt-10">
             {/* Control Bar */}
-            <div className="fixed top-6 right-6 print:hidden z-20">
-                <button
-                    onClick={() => window.print()}
-                    className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-full shadow-2xl hover:scale-105 transition-transform"
-                >
-                    <Printer size={20} /> <span className="font-bold">PRINT LABEL</span>
-                </button>
+            <div className="w-full max-w-[400px] mb-6 flex justify-between items-center print:hidden">
+                <h1 className="text-xl font-bold text-gray-800">Shipping Label</h1>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => window.print()}
+                        className="flex items-center gap-2 px-3 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
+                        title="Print Label"
+                    >
+                        <Printer size={16} /> <span>Print</span>
+                    </button>
+                    <button
+                        onClick={handleDownload}
+                        disabled={downloading}
+                        className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+                        title="Download PDF"
+                    >
+                        <Download size={16} /> 
+                        <span>{downloading ? '...' : 'PDF'}</span>
+                    </button>
+                </div>
             </div>
 
             {/* Shipping Label Box */}
-            <div className="w-[400px] h-auto bg-white border-4 border-black p-6 print:border-2 print:p-4 print:w-full print:max-w-[100mm]">
+            <div id="shipping-label" className="w-[400px] h-auto bg-white border-4 border-black p-6">
                 {/* Header / Brand */}
                 <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
                     <div>
-                        <h2 className="text-2xl font-black italic tracking-tighter">Wearino.pk</h2>
-                        <p className="text-[10px] font-bold uppercase">Online Store Logistics</p>
+                        <img src="/logo.png" alt="WEARINO" className="h-12 w-auto mb-1 object-contain" />
+                        <p className="text-[10px] font-bold uppercase text-gray-500">Online Store Logistics</p>
                     </div>
                     <div className="text-right">
                         <p className="text-[10px] font-bold uppercase text-gray-400">Ship Date</p>
@@ -102,7 +159,7 @@ export default function ShippingLabelPage() {
                 </div>
 
                 {/* Item Verification - Helper for Packer */}
-                <div className="bg-gray-50 p-3 border border-dashed border-gray-400 print:bg-white mb-6">
+                <div className="bg-gray-50 p-3 border border-dashed border-gray-400 mb-6">
                     <p className="text-[10px] font-bold uppercase text-gray-400 mb-2 flex items-center gap-1">
                         <Package size={10} /> Contents Checklist
                     </p>
@@ -117,7 +174,7 @@ export default function ShippingLabelPage() {
                 </div>
 
                 {/* Barcode Placeholder */}
-                <div className="border-2 border-black p-2 h-20 flex flex-col items-center justify-center bg-gray-50 print:bg-white overflow-hidden">
+                <div className="border-2 border-black p-2 h-20 flex flex-col items-center justify-center bg-gray-50 overflow-hidden">
                     <div className="text-[8px] font-mono mb-1">{order.orderNumber}</div>
                     <div className="w-full flex justify-center gap-0.5 overflow-hidden h-full">
                         {[...Array(40)].map((_, i) => (
@@ -134,10 +191,35 @@ export default function ShippingLabelPage() {
                 @media print {
                     @page {
                         margin: 0;
-                        size: 105mm 148mm; /* A6-ish */
                     }
-                    body {
-                        background-color: white !important;
+                    /* Force background colors and borders to print EXACTLY as seen on screen */
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    /* Hide absolutely everything by default */
+                    body * {
+                        visibility: hidden;
+                    }
+                    /* Only show the shipping label and its children */
+                    #shipping-label, #shipping-label * {
+                        visibility: visible;
+                    }
+                    /* Pin the label to the top-left of the physical paper, keep exact dimensions */
+                    #shipping-label {
+                        position: fixed;
+                        left: 0;
+                        top: 0;
+                        margin: 0;
+                        /* We don't override width or padding here so it inherits the exact 400px and border-4 from screen */
+                    }
+                    /* Ensure no background elements cause overflow */
+                    html, body {
+                        overflow: hidden;
+                        height: 100%;
+                        margin: 0;
+                        padding: 0;
+                        background: white;
                     }
                 }
             `}</style>

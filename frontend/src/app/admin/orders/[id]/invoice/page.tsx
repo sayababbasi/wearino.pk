@@ -26,6 +26,52 @@ export default function AdminInvoicePage() {
         if (orderId) fetchOrder();
     }, [orderId]);
 
+    const [downloading, setDownloading] = useState(false);
+
+    const handleDownload = async () => {
+        const { toPng } = await import('html-to-image');
+        const { jsPDF } = await import('jspdf');
+        
+        setDownloading(true);
+        const element = document.getElementById('invoice-bill');
+        if (!element) return;
+
+        try {
+            const { toPng } = await import('html-to-image');
+            const { jsPDF } = await import('jspdf');
+            
+            // Generate PNG directly from element using internal clone styling
+            // This prevents visual jumping on the page and fixes left-alignment issues
+            const dataUrl = await toPng(element, { 
+                quality: 1, 
+                backgroundColor: '#ffffff',
+                pixelRatio: 2,
+                style: {
+                    margin: '0',
+                    transform: 'none',
+                    left: '0',
+                    top: '0',
+                    width: '1000px',
+                    maxWidth: '1000px',
+                    boxShadow: 'none',
+                    padding: '40px'
+                }
+            });
+
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(dataUrl);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            
+            pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+            pdf.save(`Invoice-${order.orderNumber}.pdf`);
+        } catch (err) {
+            console.error("Failed to download invoice", err);
+        } finally {
+            setDownloading(false);
+        }
+    };
+
     if (loading) return <div className="p-10 text-center">Loading Invoice...</div>;
     if (!order) return <div className="p-10 text-center">Order not found.</div>;
 
@@ -43,9 +89,17 @@ export default function AdminInvoicePage() {
                 <div className="flex gap-3">
                     <button
                         onClick={() => window.print()}
-                        className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
+                        className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
                     >
                         <Printer size={18} /> Print Invoice
+                    </button>
+                    <button
+                        onClick={handleDownload}
+                        disabled={downloading}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+                    >
+                        <Download size={18} /> 
+                        {downloading ? 'Generating...' : 'Download PDF'}
                     </button>
                 </div>
             </div>
@@ -55,16 +109,16 @@ export default function AdminInvoicePage() {
             {/* Official Stamp Watermark */}
                 <InvoiceStamp />
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b-2 border-gray-900 pb-8 mb-8 print:pb-4 print:mb-4">
+                <div className="flex flex-col md:flex-row print:flex-row justify-between items-start md:items-center print:items-center border-b-2 border-gray-900 pb-8 mb-8 print:pb-4 print:mb-4">
                     <div>
-                        <h2 className="text-4xl font-black uppercase tracking-tighter mb-2">Wearino.pk STORE</h2>
+                        <img src="/logo.png" alt="WEARINO" className="h-28 w-auto mb-6 object-contain" />
                         <div className="text-sm text-gray-600 space-y-1">
                             <p className="flex items-center gap-2"><Globe size={14} /> www.wearino.pk</p>
                             <p className="flex items-center gap-2"><Mail size={14} /> support@wearino.pk</p>
                             <p className="flex items-center gap-2"><Phone size={14} /> +92 316 0513841</p>
                         </div>
                     </div>
-                    <div className="mt-6 md:mt-0 text-right">
+                    <div className="mt-6 md:mt-0 print:mt-0 text-right">
                         <h3 className="text-2xl font-bold text-gray-900 mb-1">INVOICE</h3>
                         <p className="text-gray-600 font-medium">Order {order.orderNumber.startsWith('#') ? order.orderNumber : `#${order.orderNumber}`}</p>
                         <p className="text-sm text-gray-500">Date: {new Date(order.createdAt).toLocaleDateString()}</p>
@@ -72,7 +126,7 @@ export default function AdminInvoicePage() {
                 </div>
 
                 {/* Billing/Shipping Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-10 print:gap-6 print:mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-12 mb-10 print:gap-6 print:mb-6">
                     <div>
                         <h4 className="text-xs font-bold uppercase text-gray-500 mb-4 tracking-widest">BILL TO:</h4>
                         <div className="space-y-1">
@@ -149,7 +203,7 @@ export default function AdminInvoicePage() {
 
                 {/* Footer Notes */}
                 <div className="mt-12 pt-8 print:mt-4 print:pt-4 border-t border-gray-100 print:break-inside-avoid">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                    <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-8 items-end">
                         <div className="space-y-4">
                             <h5 className="font-bold text-gray-900 text-sm">PAYMENT INFORMATION</h5>
                             <div className="text-sm text-gray-600 p-4 bg-gray-50 rounded border border-gray-100 print:bg-white">

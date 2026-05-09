@@ -189,8 +189,8 @@ export default function OrderReceiptPage() {
         <div className="bg-white border-b border-dark-200">
           <div className="container-custom py-12 md:py-16">
             <div className="text-center max-w-2xl mx-auto">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-black rounded-full mb-6">
-                <CheckCircle2 className="text-white" size={48} strokeWidth={2} />
+              <div className="inline-flex items-center justify-center mb-10">
+                <img src="/logo.png" alt="WEARINO" className="h-32 w-auto object-contain" />
               </div>
               <h1 className="text-4xl md:text-5xl font-light mb-4 uppercase tracking-wide">
                 {currentOrder ? "Order Confirmed!" : "Order Status"}
@@ -482,7 +482,7 @@ export default function OrderReceiptPage() {
               <text fill="#1a3a5c" fontSize="11" fontFamily="Arial, sans-serif" letterSpacing="2">
                 <textPath href="#bottomArcR" startOffset="12%">VERIFIED INVOICE • PAKISTAN</textPath>
               </text>
-              <text x="90" y="78" textAnchor="middle" fill="#1a3a5c" fontSize="22" fontWeight="900" fontFamily="Arial, sans-serif" letterSpacing="1">WEARINO</text>
+              <text x="90" y="78" textAnchor="middle" fill="#1a3a5c" fontSize="22" fontWeight="900" fontFamily="Arial, sans-serif" letterSpacing="1">W</text>
               <text x="90" y="96" textAnchor="middle" fill="#1a3a5c" fontSize="11" fontFamily="Arial, sans-serif" letterSpacing="4">.PK STORE</text>
               <line x1="50" y1="103" x2="130" y2="103" stroke="#1a3a5c" strokeWidth="1"/>
               <text x="90" y="117" textAnchor="middle" fill="#1a3a5c" fontSize="9" fontFamily="monospace" letterSpacing="1">AUTHORIZED ONLY</text>
@@ -491,8 +491,8 @@ export default function OrderReceiptPage() {
           {/* Header */}
           <div className="flex justify-between items-start border-b-2 border-black pb-8 mb-8">
             <div>
-              <h1 className="text-4xl font-black tracking-tight mb-2 uppercase">WEARINO</h1>
-              <p className="text-black text-base font-medium tracking-wide">Define Your Style, Wear Confidence.</p>
+              <img src="/logo.png" alt="WEARINO" className="h-28 w-auto mb-6 object-contain" />
+              <p className="text-black text-lg font-medium tracking-wide">Define Your Style, Wear Confidence.</p>
             </div>
             <div className="text-right">
               <h2 className="text-3xl font-bold uppercase tracking-wider mb-2 text-black">Invoice</h2>

@@ -11,6 +11,7 @@ import { api, apiClient } from '@/src/lib/api';
 import TrendingCategories from '@/src/components/home/TrendingCategories';
 import BrandsYouLove from '@/src/components/home/BrandsYouLove';
 import LovedAndWornBy from '@/src/components/home/LovedAndWornBy';
+import CategoryFeaturesBar from '@/src/components/home/CategoryFeaturesBar';
 
 // Mock data
 // Mock data fallback
@@ -253,7 +254,7 @@ export default function HomePage() {
   return (
     <div className="bg-white">
       {/* 1. Hero Slider (Awareness) */}
-      <section className="relative h-[95vh] min-h-[600px] overflow-hidden">
+      <section className="relative h-[70vh] min-h-[400px] overflow-hidden">
         {heroSlides.map((slide, index) => (
           <div
             key={slide.id}
@@ -289,6 +290,9 @@ export default function HomePage() {
           <button onClick={nextSlide} className="w-12 h-12 border border-white/30 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all"><ChevronRight size={20} /></button>
         </div>
       </section>
+
+      {/* Category Features Bar */}
+      <CategoryFeaturesBar />
 
       {/* 2. Trending Categories (Exploration) */}
       <div className="py-4">
