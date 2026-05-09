@@ -1,4 +1,5 @@
 import { sequelize } from "../config/db.js";
+import { Op } from "sequelize";
 import Cart from "../models/Cart.js";
 import CartItem from "../models/CartItem.js";
 import Order from "../models/Order.js";
@@ -82,7 +83,12 @@ export const createOrder = async (req, res) => {
         shippingAddress,
         paymentInfo: { method: paymentMethod },
         orderNumber: formattedOrderNumber,
-        paymentStatus: paymentMethod === "cod" ? "pending" : "paid"
+        paymentStatus: paymentMethod === "cod" ? "pending" : "paid",
+        statusHistory: [{
+          status: paymentMethod === "cod" ? "pending" : "paid",
+          message: paymentMethod === "cod" ? "Order placed (Cash on Delivery)" : "Order placed and paid",
+          timestamp: new Date()
+        }]
       },
       { transaction: t }
     );
@@ -330,6 +336,17 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     order.status = status;
+    
+    // Append to history
+    const history = order.statusHistory || [];
+    history.push({
+      status,
+      message: req.body.message || `Order status updated to ${status}`,
+      timestamp: new Date(),
+      updatedBy: req.user?.name || 'Admin'
+    });
+    order.statusHistory = history;
+
     await order.save({ transaction: t });
     await t.commit();
 
@@ -479,5 +496,75 @@ export const getMonthlyStats = async (req, res) => {
   } catch (err) {
     console.error("Stats error:", err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+export const trackOrder = async (req, res) => {
+  try {
+    const { id } = req.params; // Can be orderNumber or phone (if we implement phone search)
+    
+    // Clean the ID (handle # if present)
+    const targetOrderNumber = id.startsWith('#') ? id : `#${id}`;
+
+    // Extract numeric part to handle formats like w-004, #004, 004, etc.
+    const cleanNumeric = id.replace(/^#?\s*W?-?\s*/i, '');
+    
+    const variations = [
+      id,                  // Exact match
+      targetOrderNumber,   // #id
+      `#W-${cleanNumeric}`, // Standard format #W-004
+      cleanNumeric,        // Just the numbers 004
+    ];
+
+    const order = await Order.findOne({
+      where: {
+        [Op.or]: variations.map(v => ({
+          orderNumber: { [Op.iLike]: v }
+        }))
+      },
+      include: [
+        {
+          model: OrderItem,
+          include: {
+            model: Product,
+            attributes: ['id', 'name', 'images', 'price', 'sku']
+          }
+        }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Order not found. Please check your Order ID and try again." 
+      });
+    }
+
+    // Mask sensitive info for public tracking
+    const maskedOrder = {
+      orderNumber: order.orderNumber,
+      status: order.status,
+      statusHistory: order.statusHistory || [],
+      createdAt: order.createdAt,
+      total: order.total,
+      items: order.OrderItems.map(item => ({
+        name: item.Product?.name,
+        image: item.Product?.images?.[0] || item.Product?.image,
+        quantity: item.quantity,
+        price: item.price,
+        size: item.selectedSize,
+        color: item.selectedColor
+      })),
+      // Masking name and email
+      customerName: typeof order.shippingAddress === 'string' 
+        ? JSON.parse(order.shippingAddress).name.replace(/^(.).+(.)$/, "$1***$2") 
+        : (order.shippingAddress?.name || "Customer").replace(/^(.).+(.)$/, "$1***$2"),
+      estimatedDelivery: "3-5 Business Days"
+    };
+
+    res.json({ success: true, order: maskedOrder });
+  } catch (err) {
+    console.error("trackOrder error:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 };

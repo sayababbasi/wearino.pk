@@ -18,6 +18,12 @@ export default function OrdersPage() {
   const [dateRange, setDateRange] = useState('all');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [statusUpdateModal, setStatusUpdateModal] = useState<{ isOpen: boolean, orderId: string, status: OrderStatus | '' }>({
+    isOpen: false,
+    orderId: '',
+    status: ''
+  });
+  const [updateMessage, setUpdateMessage] = useState('');
 
   // Fetch orders from API
   useEffect(() => {
@@ -99,20 +105,38 @@ export default function OrdersPage() {
     return matchesSearch && matchesStatus && matchesPayment;
   });
 
-  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+  const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
+    setStatusUpdateModal({
+      isOpen: true,
+      orderId,
+      status: newStatus
+    });
+    setUpdateMessage(`Order status updated to ${newStatus.toUpperCase()}`);
+  };
+
+  const confirmUpdateStatus = async () => {
+    const { orderId, status } = statusUpdateModal;
+    if (!orderId || !status) return;
+
     try {
-      // Update order status via API
-      await apiClient.put(`/order/${orderId}/status`, { status: newStatus });
+      setLoading(true);
+      // Update order status via API with message
+      await api.updateOrderStatus(orderId, status, { message: updateMessage });
 
       // Update local state
       setOrders(orders.map(order =>
         order.id === orderId
-          ? { ...order, status: newStatus, paymentStatus: newStatus === 'refunded' ? 'refunded' : order.paymentStatus }
+          ? { ...order, status: status as OrderStatus, paymentStatus: status === 'refunded' ? 'refunded' : order.paymentStatus }
           : order
       ));
+      
+      setStatusUpdateModal({ isOpen: false, orderId: '', status: '' });
+      setUpdateMessage('');
     } catch (error) {
       console.error('Error updating order status:', error);
       alert('Failed to update order status. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -302,6 +326,41 @@ export default function OrdersPage() {
           </button>
         </div>
       </div>
+
+      {/* Status Update Modal */}
+      {statusUpdateModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-xl font-bold mb-4 uppercase tracking-tight">Update Status: <span className="text-blue-600">{statusUpdateModal.status}</span></h3>
+            <p className="text-gray-600 mb-6">Add a message for the customer to see in their tracking history.</p>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-bold uppercase tracking-widest text-gray-400 mb-2">Tracking Message</label>
+              <textarea
+                value={updateMessage}
+                onChange={(e) => setUpdateMessage(e.target.value)}
+                className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black outline-none min-h-[100px]"
+                placeholder="e.g. Your order has been picked up by the courier..."
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStatusUpdateModal({ ...statusUpdateModal, isOpen: false })}
+                className="flex-1 px-6 py-3 border border-gray-200 rounded-xl font-bold uppercase tracking-wider text-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmUpdateStatus}
+                className="flex-1 px-6 py-3 bg-black text-white rounded-xl font-bold uppercase tracking-wider hover:bg-gray-800 transition-colors"
+              >
+                Update Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cancel Order Modal */}
       <ConfirmationModal

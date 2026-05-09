@@ -6,7 +6,8 @@ import {
   updateOrderStatus,
   updatePaymentStatus,
   getMonthlyStats,
-  cancelOrderItem
+  cancelOrderItem,
+  trackOrder
 } from "../controllers/orderController.js";
 import { protect, isAdmin, authorize, optionalAuth } from "../middleware/authMiddleware.js";
 
@@ -20,6 +21,9 @@ router.get("/", protect, getOrders);
 
 // Get Monthly Stats (Admin only)
 router.get("/stats/monthly", protect, isAdmin, getMonthlyStats);
+
+// Public Order Tracking
+router.get("/track/:id", trackOrder);
 
 // Get Order By ID
 router.get("/:id", optionalAuth, getOrderById);

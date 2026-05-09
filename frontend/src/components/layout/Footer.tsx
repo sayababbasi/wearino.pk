@@ -30,7 +30,7 @@ export default function Footer() {
             <ul className="space-y-2 text-md font-extralight text-[var(--color-dark-700)]">
               <li><Link href="#">My Account</Link></li>
               <li><Link href="#">Return Center</Link></li>
-              <li><Link href="#">Track My Order</Link></li>
+              <li><Link href="/track-order">Track My Order</Link></li>
               <li><Link href="#">Contact Us</Link></li>
               <li><Link href="#">Size Guide</Link></li>
             </ul>

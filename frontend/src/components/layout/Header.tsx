@@ -327,6 +327,14 @@ export default function Header() {
                         </Link>
                       )}
 
+                      <Link
+                        href="/track-order"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-dark-700 hover:bg-dark-50 transition-colors"
+                      >
+                        <Package size={16} />
+                        Track My Order
+                      </Link>
+
                       <button
                         onClick={() => {
                           localStorage.removeItem('token');
@@ -425,6 +433,15 @@ export default function Header() {
                 </div>
               ))}
             </nav>
+            <div className="container-custom py-2 border-t border-dark-100">
+              <Link
+                href="/track-order"
+                className="block py-3 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors uppercase"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Track My Order
+              </Link>
+            </div>
           </div>
         )}
 

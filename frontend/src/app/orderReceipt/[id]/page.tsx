@@ -410,11 +410,12 @@ export default function OrderReceiptPage() {
                     <span className={CTA_BUTTON_TEXT_CLASS}>Continue Shopping</span>
                     <span className={CTA_BUTTON_OVERLAY_CLASS}></span>
                   </Link>
-                  <button
-                    className="w-full px-8 py-3 border-2 border-black text-black bg-white hover:bg-black hover:text-white transition-colors font-extralight"
+                  <Link
+                    href={`/track-order?id=${encodeURIComponent(orderData.orderNumber)}`}
+                    className="w-full px-8 py-3 border-2 border-black text-black bg-white hover:bg-black hover:text-white transition-colors font-extralight block text-center"
                   >
                     Track Your Order
-                  </button>
+                  </Link>
                 </div>
 
                 {/* Order Info Card */}

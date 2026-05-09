@@ -509,6 +509,12 @@ export const api = {
     return response.data;
   },
 
+  trackOrder: async (id: string) => {
+    const response = await apiClient.get(`/order/track/${encodeURIComponent(id)}`);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
   updateOrderStatus: async (id: string, status: string, options: any = {}) => {
     const response = await apiClient.put(`/order/${id}/status`, { status, ...options });
     if (response.error) throw new Error(response.error);

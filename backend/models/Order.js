@@ -51,6 +51,11 @@ const Order = sequelize.define("Order", {
     type: DataTypes.FLOAT,
     allowNull: true,
   },
+  statusHistory: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
+  },
 }, {
   tableName: "orders",
   timestamps: true,
