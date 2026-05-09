@@ -1,0 +1,76 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+# But allow .env.example files
+!.env.example
+!.env.local.example
+
+# Build outputs
+.next/
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flutter
+mobile_app/.dart_tool/
+mobile_app/.flutter-plugins
+mobile_app/.flutter-plugins-dependencies
+mobile_app/.packages
+mobile_app/pubspec.lock
+mobile_app/.pub-cache/
+mobile_app/build/
+mobile_app/.ios/
+mobile_app/.android/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+app.old/
+
+# Local guides (not for GitHub)
+QUICK_PUSH_GUIDE.md
+
+# Database
+*.db
+*.sqlite
+
+# Archives and Backups
+*.rar
+*.zip
+*.7z
+backup/
+*.bak
+

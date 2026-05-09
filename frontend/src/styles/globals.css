@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --color-border: #e5e7eb;
+
+  --color-dark-50: #f9fafb;
+  --color-dark-300: #d1d5db;
+  --color-dark-700: #374151;
+  --color-dark-900: #111827;
+
+  --color-white: #ffffff;
+  --aspect-portrait: 3 / 4;
+}
+
+@utility aspect-3/4 {
+  aspect-ratio: 3 / 4;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-white);
+    color: var(--color-dark-900);
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .btn-primary {
+    @apply bg-[var(--color-dark-900)] text-white px-6 py-3 rounded hover:bg-[var(--color-dark-700)] transition-colors font-medium;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-[var(--color-dark-900)] border border-[var(--color-dark-300)] px-6 py-3 rounded hover:bg-[var(--color-dark-50)] transition-colors font-medium;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2 border border-[var(--color-dark-300)] rounded focus:outline-none focus:ring-2 focus:ring-[var(--color-dark-900)] focus:border-transparent;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow;
+  }
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@layer utilities {
+  .animate-marquee {
+    display: inline-block;
+    padding-left: 100%;
+    animation: marquee 15s linear infinite;
+    white-space: nowrap;
+  }
+
+  /* When hovering over the marquee container, pause animation */
+  .marquee-container:hover .animate-marquee {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translate(0, 0);
+  }
+
+  100% {
+    transform: translate(-100%, 0);
+  }
+}
+
+@layer utilities {
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  .animate-slideInRight {
+    animation: slideInRight 0.4s cubic-bezier(0, 0, 0.2, 1) forwards;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}

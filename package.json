@@ -1,0 +1,20 @@
+{
+  "name": "product-listing-website",
+  "version": "1.0.0",
+  "description": "A full-stack e-commerce application with web UI (Next.js), mobile app (Flutter), Express backend, and Python chatbot integration.",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install --legacy-peer-deps",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "start": "npm run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

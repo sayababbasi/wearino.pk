@@ -1,0 +1,303 @@
+{
+  "intents": [
+    {
+      "tag": "greeting",
+      "patterns": [
+        "Hi",
+        "Hello",
+        "Hey",
+        "Good morning",
+        "Good evening"
+      ],
+      "responses": [
+        "Hello! Welcome to Fashion Hub. How can I help you today?",
+        "Hi there! Looking for something stylish?",
+        "Hey! Need help finding dresses, shoes, bags, or accessories?"
+      ],
+      "follow_up": null
+    },
+    {
+      "tag": "farewell",
+      "patterns": [
+        "Bye",
+        "Goodbye",
+        "Thanks for helping",
+        "Talk to you later"
+      ],
+      "responses": [
+        "Goodbye! Stay stylish!",
+        "See you soon!",
+        "Take care!"
+      ],
+      "follow_up": null
+    },
+    {
+      "tag": "place_order",
+      "patterns": [
+        "I want to buy this shirt",
+        "I want to purchase",
+        "Place an order",
+        "Buy this",
+        "Checkout",
+        "buy",
+        "purchase"
+      ],
+      "keywords": [
+        "buy",
+        "purchase",
+        "checkout",
+        "place",
+        "order"
+      ],
+      "responses": [
+        "Great choice! Taking you to checkout..."
+      ],
+      "follow_up": {
+        "action": "place_order",
+        "response_template": "Great! Navigating you to checkout to complete your purchase."
+      }
+    },
+    {
+      "tag": "product_search",
+      "patterns": [
+        "Show me women's dresses",
+        "I want to buy men's shirts",
+        "Do you have handbags?",
+        "Show me women's shoes",
+        "Looking for perfumes",
+        "Search accessories",
+        "I need a formal dress",
+        "Any men's clothing?",
+        "Show me tops",
+        "Do you have heels?",
+        "I need a prank",
+        "Show me something random",
+        "What can you show me?",
+        "shoes",
+        "dresses",
+        "shirts",
+        "pants",
+        "tops"
+      ],
+      "keywords": [
+        "show",
+        "search",
+        "find",
+        "looking",
+        "have",
+        "women",
+        "men",
+        "kids",
+        "shoes",
+        "bags",
+        "accessories",
+        "dresses",
+        "shirts"
+      ],
+      "responses": [
+        "Sure! Here are some popular options: Stylo, Heels, Zara, H&M, Nike, Adidas."
+      ],
+      "entities": [
+        "category"
+      ],
+      "follow_up": {
+        "expected_entity": [
+          "category"
+        ],
+        "action": "search_products",
+        "response_template": "Here are some {{category}} you might like: {{product_list}}",
+        "example_data": {
+          "women_dresses": [
+            "Zara Maxi Dress",
+            "Mango Printed Dress",
+            "H&M Summer Dress",
+            "Nishat Linen Formal Dress"
+          ],
+          "women_tops": [
+            "Zara Ribbed Top",
+            "H&M Casual Top",
+            "Outfitters Graphic Tee"
+          ],
+          "women_shoes": [
+            "Charles & Keith Heels",
+            "Stylo Block Heels",
+            "Bata Comfort Sandals"
+          ],
+          "handbags": [
+            "Charles & Keith Tote",
+            "Gucci Shoulder Bag",
+            "Coach Leather Handbag"
+          ],
+          "accessories": [
+            "RayBan Sunglasses",
+            "Guess Wallet",
+            "MK Leather Belt"
+          ],
+          "perfumes": [
+            "Chanel Coco Mademoiselle",
+            "Versace Bright Crystal",
+            "Dior J'adore"
+          ],
+          "men_shirts": [
+            "Levi's Denim Shirt",
+            "Zara Formal Shirt",
+            "Outfitters Slim Fit Shirt"
+          ],
+          "men_clothing": [
+            "ChenOne Men's Kurta",
+            "Breakout Men's Hoodie",
+            "Royal Tag Suit"
+          ],
+          "heels": [
+            "Charles & Keith Heels",
+            "Stylo Block Heels",
+            "Bata Comfort Sandals"
+          ]
+        },
+        "default_category": "women_dresses"
+      }
+    },
+    {
+      "tag": "payment_methods",
+      "patterns": [
+        "What payment methods are accepted?",
+        "Can I pay with PayPal?",
+        "Do you accept credit cards?",
+        "Payment options available?"
+      ],
+      "responses": [
+        "We accept Credit/Debit Cards, PayPal, and Cash on Delivery."
+      ],
+      "follow_up": null
+    },
+    {
+      "tag": "new_arrivals",
+      "patterns": [
+        "New arrivals",
+        "What's new?",
+        "Latest items",
+        "Recently added"
+      ],
+      "responses": [
+        "Here are the latest arrivals: {{new_items}}"
+      ],
+      "follow_up": null,
+      "example_data": {
+        "new_items": [
+          "Zara Oversized Shirt",
+          "MK Leather Tote Bag",
+          "Adidas Falcon Sneakers",
+          "Chanel Chance Perfume"
+        ]
+      }
+    },
+    {
+      "tag": "delivery_status",
+      "patterns": [
+        "Where is my order",
+        "Track my order",
+        "Order status",
+        "Status of order",
+        "Check my status",
+        "Where is package",
+        "track",
+        "status"
+      ],
+      "keywords": [
+        "where",
+        "track",
+        "status",
+        "package",
+        "shipment",
+        "delivery"
+      ],
+      "responses": [
+        "I can help with that. Could you please provide your Order ID?"
+      ],
+      "follow_up": {
+        "expected_entity": [
+          "order_id"
+        ],
+        "action": "lookup_order_status",
+        "response_template": "Checking status for Order {{order_id}}... It is currently {{status}}."
+      }
+    },
+    {
+      "tag": "refund_request",
+      "patterns": [
+        "I want a refund",
+        "Return my order",
+        "Refund process",
+        "Cancel my order"
+      ],
+      "responses": [
+        "Please provide your order ID and the reason for refund."
+      ],
+      "entities": [
+        "order_id",
+        "reason"
+      ],
+      "follow_up": {
+        "expected_entity": [
+          "order_id",
+          "reason"
+        ],
+        "action": "process_refund",
+        "response_template": "Your refund request for order {{order_id}} has been submitted. Status: {{refund_status}}."
+      }
+    },
+    {
+      "tag": "offers_discounts",
+      "patterns": [
+        "Any discounts?",
+        "Current offers",
+        "Promo codes?",
+        "Deals today"
+      ],
+      "responses": [
+        "Here are some great offers: {{offer_list}}"
+      ],
+      "follow_up": null,
+      "example_data": {
+        "offer_list": [
+          "Free shipping on orders over $75",
+          "20% off on women's shoes",
+          "Buy 1 Get 1 Free on men's shirts",
+          "10% off on handbags",
+          "Flat 15% off on perfumes"
+        ]
+      }
+    },
+    {
+      "tag": "contact_support",
+      "patterns": [
+        "I need help",
+        "Contact support",
+        "Customer service"
+      ],
+      "responses": [
+        "Our support team is here for you! Email support@fashionhub.com or call 123-456-7890."
+      ],
+      "follow_up": null
+    },
+    {
+      "tag": "feedback",
+      "patterns": [
+        "I want to give feedback",
+        "Submit review",
+        "I have a complaint",
+        "I want to share my experience"
+      ],
+      "responses": [
+        "We appreciate your feedback! Please type your message below."
+      ],
+      "follow_up": {
+        "expected_entity": [
+          "feedback_text"
+        ],
+        "action": "record_feedback",
+        "response_template": "Thank you! Your feedback has been successfully recorded."
+      }
+    }
+  ]
+}
