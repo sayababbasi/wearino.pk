@@ -11,7 +11,15 @@ import User from "../models/User.js";
 export const createOrder = async (req, res) => {
   const t = await sequelize.transaction();
   try {
-    const { shippingAddress, paymentMethod, items, orderNumber: requestedOrderNumber, couponCode, couponDiscount } = req.body;
+    const { 
+      shippingAddress, 
+      paymentMethod, 
+      items, 
+      couponCode, 
+      couponDiscount, 
+      shippingCharges, 
+      taxAmount 
+    } = req.body;
 
     let orderItems = [];
 
@@ -62,9 +70,11 @@ export const createOrder = async (req, res) => {
     // calculate subtotal
     const subtotal = orderItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
 
-    // final total after discount
+    // final total after discount, shipping and tax
     const discountAmount = couponDiscount || 0;
-    const total = Math.max(0, subtotal - discountAmount);
+    const shipping = shippingCharges || 0;
+    const tax = taxAmount || 0;
+    const total = Math.max(0, subtotal + shipping + tax - discountAmount);
 
     // Generate sequential order number in #W-XXX format
     const orderCount = await Order.count({ transaction: t });
@@ -78,6 +88,8 @@ export const createOrder = async (req, res) => {
         status: paymentMethod === "cod" ? "pending" : "paid",
         total,
         subtotal,
+        shippingCharges: shipping,
+        taxAmount: tax,
         couponCode: couponCode || null,
         couponDiscount: discountAmount,
         shippingAddress,

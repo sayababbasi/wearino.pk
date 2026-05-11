@@ -75,7 +75,8 @@ app.use(morgan("dev"));
 app.get("/api/health", (req, res) => {
   res.json({ success: true, status: "UP", timestamp: new Date() });
 });
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+
 
 import contentRoutes from "./routes/contentRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";

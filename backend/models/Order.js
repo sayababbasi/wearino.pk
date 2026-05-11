@@ -51,6 +51,16 @@ const Order = sequelize.define("Order", {
     type: DataTypes.FLOAT,
     allowNull: true,
   },
+  shippingCharges: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    defaultValue: 0,
+  },
+  taxAmount: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    defaultValue: 0,
+  },
   statusHistory: {
     type: DataTypes.JSON,
     allowNull: true,

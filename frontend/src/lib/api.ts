@@ -1,5 +1,5 @@
 /**
- * API Client Module
+ * API Client Module - v1.0.1 (Force Reload)
  * 
  * Provides a centralized HTTP client for making API requests to the backend.
  * Handles authentication, error handling, and response transformation.
@@ -23,7 +23,7 @@
  * 
  * Set NEXT_PUBLIC_API_URL in .env.local for custom backend URLs.
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 /**
  * API Response Interface
@@ -423,13 +423,17 @@ export const api = {
   },
 
   getProduct: async (id: string) => {
+    if (!id || id === 'undefined') {
+      console.warn('Attempted to fetch product with invalid ID:', id);
+      return null;
+    }
     const response = await apiClient.get(`/product/${id}`);
     if (response.error) throw new Error(response.error);
     const product = (response.data as any)?.product;
     if (!product) return null;
 
     return {
-      product_id: product.id?.toString() || product.product_id,
+      product_id: (product.id && product.id !== 'undefined') ? product.id.toString() : product.product_id,
       id: product.id,
       name: product.name,
       description: product.description,
@@ -698,6 +702,42 @@ export const api = {
     return response.data?.content || [];
   },
 
+  getMyReviews: async () => {
+    const response = await apiClient.get('/reviews/me');
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  getPendingReviewProducts: async () => {
+    const response = await apiClient.get('/reviews/pending-products');
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  getProductReviews: async (productId: string) => {
+    const response = await apiClient.get(`/reviews/product/${productId}`);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  createReview: async (reviewData: any) => {
+    const response = await apiClient.post('/reviews', reviewData);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  deleteMyReview: async (id: string) => {
+    const response = await apiClient.delete(`/reviews/${id}`);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  updateMyReview: async (id: string, reviewData: any) => {
+    const response = await apiClient.put(`/reviews/${id}`, reviewData);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
   createContent: async (contentData: any) => {
     const response = await apiClient.post('/content', contentData);
     if (response.error) throw new Error(response.error);
@@ -725,6 +765,105 @@ export const api = {
 
   toggleReviewStatus: async (id: string) => {
     const response = await apiClient.patch<any>(`/admin/reviews/${id}/toggle-approval`);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  // Returns
+  getReturnRequests: async () => {
+    const response = await apiClient.get('/returns/me');
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  createReturnRequest: async (returnData: { orderId: number; productId: number; reason: string; description?: string; images?: string[] }) => {
+    const response = await apiClient.post('/returns', returnData);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  // Admin Returns
+  getAllReturns: async () => {
+    const response = await apiClient.get('/returns/admin/all');
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  updateReturnStatus: async (id: string | number, status: string, adminNote?: string) => {
+    const response = await apiClient.put(`/returns/admin/${id}/status`, { status, adminNote });
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  updateRefundStatus: async (id: string | number, refundStatus: string) => {
+    const response = await apiClient.put(`/returns/admin/${id}/refund`, { refundStatus });
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  // Configuration & Settings
+  getSettings: async () => {
+    const response = await apiClient.get('/config/settings');
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  updateSetting: async (key: string, value: any, group?: string) => {
+    const response = await apiClient.post('/config/settings', { key, value, group });
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  getDeliveryZones: async () => {
+    const response = await apiClient.get('/config/delivery-zones');
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  createDeliveryZone: async (zoneData: any) => {
+    const response = await apiClient.post('/config/delivery-zones', zoneData);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  updateDeliveryZone: async (id: number | string, zoneData: any) => {
+    const response = await apiClient.put(`/config/delivery-zones/${id}`, zoneData);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  deleteDeliveryZone: async (id: number | string) => {
+    const response = await apiClient.delete(`/config/delivery-zones/${id}`);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  getPaymentMethods: async () => {
+    const response = await apiClient.get('/config/payment-methods');
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  updatePaymentMethod: async (id: number | string, methodData: any) => {
+    const response = await apiClient.put(`/config/payment-methods/${id}`, methodData);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  uploadPaymentProof: async (formData: FormData) => {
+    const response = await apiClient.post('/config/payment-proofs/upload', formData);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  getPaymentProofs: async () => {
+    const response = await apiClient.get('/config/payment-proofs');
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  verifyPaymentProof: async (id: number | string, data: { status: string; adminNote?: string }) => {
+    const response = await apiClient.put(`/config/payment-proofs/${id}/verify`, data);
     if (response.error) throw new Error(response.error);
     return response.data;
   },

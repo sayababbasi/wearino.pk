@@ -25,26 +25,25 @@ export default function CheckoutPage() {
   const [isOrderComplete, setIsOrderComplete] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
+  // Logistics & Financial state
+  const [deliveryZones, setDeliveryZones] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [globalTax, setGlobalTax] = useState(0);
+  const [shippingFee, setShippingFee] = useState(0);
+  const [taxAmount, setTaxAmount] = useState(0);
+
   const [formData, setFormData] = useState({
-    // Contact Information
     email: '',
     phone: '',
-
-    // Shipping Information
     firstName: '',
     lastName: '',
     address: '',
     city: '',
     state: '',
     zipCode: '',
-    country: 'United States',
-
-    // Payment Information
-    paymentMethod: 'cod', // cod, card
-    cardNumber: '',
-    cardName: '',
-    expiryDate: '',
-    cvv: '',
+    country: 'Pakistan',
+    paymentMethod: 'cod',
+    transactionId: '',
   });
 
   // Coupon state
@@ -53,10 +52,53 @@ export default function CheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
 
+  // Initial Fetch
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [zonesRes, methodsRes, settingsRes] = await Promise.all([
+          api.getDeliveryZones(),
+          api.getPaymentMethods(),
+          api.getSettings()
+        ]) as [any, any, any];
+        
+        setDeliveryZones(zonesRes.zones || []);
+        setPaymentMethods(methodsRes.methods?.filter((m: any) => m.isActive) || []);
+        const taxSetting = settingsRes.settings?.find((s: any) => s.key === 'global_tax_percent');
+        if (taxSetting) setGlobalTax(parseFloat(taxSetting.value));
+      } catch (error) {
+        console.error('Failed to load checkout config:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
   const totalPrice = getTotalPrice();
-  const shipping = totalPrice > 75 ? 0 : 10;
-  const tax = totalPrice * 0.08; // 8% tax
+  const subtotal = totalPrice; // Alias for compatibility
   const discount = appliedCoupon?.discountAmount || 0;
+
+  // Real-time Calculations
+  useEffect(() => {
+    // 1. Calculate Shipping
+    const zone = deliveryZones.find(z => z.name.toLowerCase() === (formData.city || '').toLowerCase());
+    let fee = zone ? parseFloat(zone.charge) : 150; 
+    if (zone?.freeDeliveryThreshold && totalPrice >= zone.freeDeliveryThreshold) {
+      fee = 0;
+    }
+    setShippingFee(fee);
+
+    // 2. Calculate Tax
+    let totalTax = 0;
+    items.forEach(item => {
+      const taxRate = (item as any).taxOverride !== undefined ? (item as any).taxOverride : globalTax;
+      totalTax += (item.price * item.quantity * taxRate) / 100;
+    });
+    setTaxAmount(totalTax);
+
+  }, [formData.city, formData.paymentMethod, deliveryZones, paymentMethods, totalPrice, globalTax, items]);
+
+  const shipping = shippingFee;
+  const tax = taxAmount;
   const finalTotal = totalPrice + shipping + tax - discount;
 
   const generateOrderNumber = () => {
@@ -98,7 +140,7 @@ export default function CheckoutPage() {
         showToast(`Coupon applied! You save ${formatPrice(response.data.coupon.discountAmount)}`, 'success');
       }
     } catch (error: any) {
-      setCouponError(error.response?.data?.message || 'Invalid coupon code');
+      setCouponError(error.message || 'Invalid coupon code');
       setAppliedCoupon(null);
     } finally {
       setCouponLoading(false);
@@ -140,98 +182,54 @@ export default function CheckoutPage() {
       }));
 
       // Handle payment method
-      if (formData.paymentMethod === 'card') {
-        // Stripe payment - create checkout session
-        try {
-          const stripeResponse = await apiClient.post('/payment/create-checkout-session', {
-            items: orderItems,
-            shippingAddress,
-          });
-
-          const sessionId = (stripeResponse.data as any)?.id;
-          if (sessionId) {
-            // Redirect to Stripe Checkout
-            const stripe = (window as any).Stripe;
-            if (!stripe) {
-              throw new Error('Stripe not loaded');
-            }
-
-            const stripeInstance = stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-            const { error } = await stripeInstance.redirectToCheckout({
-              sessionId: sessionId,
-            });
-
-            if (error) {
-              throw error;
-            }
-            return; // Redirect will happen
-          }
-        } catch (stripeError: any) {
-          console.error('Stripe error:', stripeError);
-          showToast(stripeError.message || 'Payment processing failed', 'error');
-          setIsProcessing(false);
-          return;
+      const orderResponse = await api.createOrder({
+        shippingAddress,
+        paymentMethod: formData.paymentMethod,
+        items: orderItems,
+        couponCode: appliedCoupon?.code || null,
+        couponDiscount: discount,
+        subtotal: subtotal,
+        shippingCharges: shipping,
+        taxAmount: tax,
+        paymentInfo: {
+          transactionId: formData.transactionId || null,
         }
-      } else {
-        // Cash on Delivery - create order directly
-        // Backend will auto-generate order number in #W-XXX format
+      } as any);
 
-        const orderResponse = await api.createOrder({
-          shippingAddress,
-          paymentMethod: 'cod',
-          items: orderItems,
-          couponCode: appliedCoupon?.code || null,
-          couponDiscount: discount,
-          subtotal: totalPrice,
-        } as any);
-
-        // Check if orderResponse exists and has error
-        if (!orderResponse) {
-          throw new Error('Failed to create order: No response from server');
-        }
-
-        if (orderResponse.error) {
-          throw new Error(orderResponse.error);
-        }
-
-        const order = orderResponse.data || orderResponse;
-        const orderNumber = (order as any).order?.orderNumber || (order as any).orderNumber || "PENDING";
-
-        // Generate order data for receipt
-        const orderDate = new Date().toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric'
-        });
-        const estimatedDelivery = getEstimatedDelivery();
-
-        const orderData = {
-          orderNumber,
-          orderDate,
-          estimatedDelivery,
-          customerName: `${formData.firstName} ${formData.lastName}`,
-          email: formData.email,
-          phone: formData.phone,
-          shippingAddress,
-          paymentMethod: 'Cash on Delivery (COD)',
-          items: items,
-          subtotal: totalPrice,
-          shipping: shipping,
-          tax: tax,
-          discount: discount,
-          couponCode: appliedCoupon?.code,
-          total: finalTotal,
-        };
-
-        // Save order data to store
-        setOrder(orderData);
-        setIsOrderComplete(true);
-
-        showToast('Order placed successfully! 🎉', 'success');
-        clearCart();
-        // Redirect to dynamic route with proper ID (remove # if present)
-        router.push(`/orderReceipt/${orderNumber.toString().replace('#', '')}`);
+      if (!orderResponse || orderResponse.error) {
+        throw new Error(orderResponse.error || 'Failed to create order');
       }
+
+      const order = (orderResponse as any).data?.order || (orderResponse as any).order;
+      const orderNumber = order?.orderNumber || "PENDING";
+
+      // Prepare data for store/receipt
+      const orderData = {
+        orderNumber,
+        orderDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        estimatedDelivery: getEstimatedDelivery(),
+        customerName: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        phone: formData.phone,
+        shippingAddress,
+        paymentMethod: paymentMethods.find(m => m.type === formData.paymentMethod)?.providerName || formData.paymentMethod,
+        items: items,
+        subtotal: subtotal,
+        shipping: shippingFee,
+        tax: taxAmount,
+        discount: discount,
+        couponCode: appliedCoupon?.code,
+        total: finalTotal,
+      };
+
+      setOrder(orderData);
+      setIsOrderComplete(true);
+      showToast('Order placed successfully! 🎉', 'success');
+      clearCart();
+      
+      // Redirect to dynamic receipt route
+      router.push(`/orderReceipt/${orderNumber.toString().replace('#', '')}`);
+
     } catch (error: any) {
       console.error('Order creation error:', error);
       showToast(error.message || 'Failed to place order. Please try again.', 'error');
@@ -506,114 +504,74 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Payment Method Selection */}
-                  <div className="space-y-4 mb-6">
-                    <label className="flex items-center p-4 border-2 border-dark-300 rounded cursor-pointer hover:border-black transition-colors">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="cod"
-                        checked={formData.paymentMethod === 'cod'}
-                        onChange={(e) =>
-                          setFormData({ ...formData, paymentMethod: e.target.value })
-                        }
-                        className="mr-3"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium">Cash on Delivery (COD)</div>
-                        <div className="text-sm text-dark-600">Pay when you receive your order</div>
-                      </div>
-                    </label>
+                    {/* Dynamic Payment Methods */}
+                    <div className="space-y-4">
+                      {paymentMethods.map((method) => (
+                        <div key={method.id} className="space-y-4">
+                          <div
+                            className={`flex items-start p-4 border rounded-xl cursor-pointer transition-all ${formData.paymentMethod === method.type ? 'border-black bg-gray-50' : 'border-gray-100'
+                              }`}
+                            onClick={() => setFormData({ ...formData, paymentMethod: method.type })}
+                          >
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${formData.paymentMethod === method.type ? 'border-black' : 'border-gray-300'
+                              }`}>
+                              {formData.paymentMethod === method.type && <div className="w-2.5 h-2.5 rounded-full bg-black"></div>}
+                            </div>
+                            <div className="ml-4 flex-1">
+                              <span className="block text-sm font-bold text-gray-900">{method.providerName}</span>
+                              <span className="block text-xs text-gray-500 mt-1 leading-relaxed">{method.instructions}</span>
+                              
+                              {/* Bank Details Section */}
+                              {formData.paymentMethod === method.type && (method.accountNumber || method.iban) && (
+                                <div className="mt-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                  <p className="text-[10px] font-black uppercase tracking-widest text-dark-400 mb-2">Transfer Details</p>
+                                  {method.accountTitle && (
+                                    <div className="flex justify-between items-center py-1 border-b border-gray-50">
+                                      <span className="text-[11px] text-gray-500">Account Title</span>
+                                      <span className="text-[11px] font-bold text-black">{method.accountTitle}</span>
+                                    </div>
+                                  )}
+                                  {method.accountNumber && (
+                                    <div className="flex justify-between items-center py-1 border-b border-gray-50">
+                                      <span className="text-[11px] text-gray-500">Account Number</span>
+                                      <span className="text-[11px] font-bold text-black font-mono">{method.accountNumber}</span>
+                                    </div>
+                                  )}
+                                  {method.iban && (
+                                    <div className="flex flex-col py-1">
+                                      <span className="text-[11px] text-gray-500 mb-1">IBAN</span>
+                                      <span className="text-[11px] font-bold text-black font-mono break-all">{method.iban}</span>
+                                    </div>
+                                  )}
+                                  <p className="text-[10px] text-amber-600 mt-2 font-medium italic">
+                                    * Please transfer the amount before placing the order.
+                                  </p>
+                                </div>
+                              )}
 
-                    <label className="flex items-center p-4 border-2 border-dark-300 rounded cursor-pointer hover:border-black transition-colors">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="card"
-                        checked={formData.paymentMethod === 'card'}
-                        onChange={(e) =>
-                          setFormData({ ...formData, paymentMethod: e.target.value })
-                        }
-                        className="mr-3"
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium">Credit/Debit Card</div>
-                        <div className="text-sm text-dark-600">Secure payment processing</div>
-                      </div>
-                    </label>
-                  </div>
+                              {method.extraFee > 0 && (
+                                <span className="inline-block mt-2 text-[10px] font-bold text-amber-600 uppercase tracking-widest">+ {formatPrice(method.extraFee)} Surcharge</span>
+                              )}
+                            </div>
+                          </div>
 
-                  {/* Card Details (if card selected) */}
-                  {formData.paymentMethod === 'card' && (
-                    <div className="space-y-4 border-t border-dark-200 pt-6 mt-6">
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-dark-700">
-                          Card Number *
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.cardNumber}
-                          onChange={(e) =>
-                            setFormData({ ...formData, cardNumber: e.target.value })
-                          }
-                          placeholder="1234 5678 9012 3456"
-                          className="w-full px-4 py-3 border border-dark-300 rounded focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                          maxLength={19}
-                          required={formData.paymentMethod === 'card'}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-dark-700">
-                          Cardholder Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.cardName}
-                          onChange={(e) =>
-                            setFormData({ ...formData, cardName: e.target.value })
-                          }
-                          placeholder="John Doe"
-                          className="w-full px-4 py-3 border border-dark-300 rounded focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                          required={formData.paymentMethod === 'card'}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2 text-dark-700">
-                            Expiry Date *
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.expiryDate}
-                            onChange={(e) =>
-                              setFormData({ ...formData, expiryDate: e.target.value })
-                            }
-                            placeholder="MM/YY"
-                            className="w-full px-4 py-3 border border-dark-300 rounded focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                            maxLength={5}
-                            required={formData.paymentMethod === 'card'}
-                          />
+                          {/* Transaction ID Input for Manual Payments */}
+                          {formData.paymentMethod === method.type && method.type !== 'cod' && (
+                            <div className="ml-9 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500">Transaction ID / Reference Number</label>
+                              <input
+                                type="text"
+                                value={formData.transactionId}
+                                onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
+                                placeholder="Enter your payment reference"
+                                className="w-full px-4 py-2 bg-white border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black text-sm"
+                              />
+                              <p className="text-[9px] text-gray-400 italic">Optional: You can also upload the screenshot on the next page.</p>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 text-dark-700">
-                            CVV *
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.cvv}
-                            onChange={(e) =>
-                              setFormData({ ...formData, cvv: e.target.value })
-                            }
-                            placeholder="123"
-                            className="w-full px-4 py-3 border border-dark-300 rounded focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                            maxLength={4}
-                            required={formData.paymentMethod === 'card'}
-                          />
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  )}
 
                   <div className="flex items-center gap-2 mt-6 text-sm text-dark-600">
                     <Lock size={16} />
@@ -649,99 +607,93 @@ export default function CheckoutPage() {
                 <h2 className="text-xl font-light mb-6 uppercase tracking-wide">Order Summary</h2>
 
                 {/* Items */}
-                <div className="space-y-4 mb-6 max-h-80 overflow-y-auto">
+                <div className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2">
                   {items.map((item) => {
                     const itemPrice = item.discount
                       ? item.price * (1 - item.discount / 100)
                       : item.price;
 
                     return (
-                      <div key={item.product_id} className="flex gap-4 pb-4 border-b border-dark-200 last:border-0">
-                        <img
-                          src={api.getImageUrl(item.images?.[0] || (item as any).image)}
-                          alt={item.name}
-                          className="w-20 h-20 object-cover rounded"
-                        />
+                      <div key={item.product_id || (item as any).id} className="flex gap-4">
+                        <div className="relative w-16 h-16 bg-dark-50 rounded overflow-hidden flex-shrink-0">
+                          <img
+                            src={api.getImageUrl(item.image || item.images?.[0])}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-black text-white text-[10px] flex items-center justify-center rounded-full font-bold">
+                            {item.quantity}
+                          </span>
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium line-clamp-2 mb-1">
-                            {item.name}
+                          <h4 className="text-sm font-medium text-dark-900 truncate">{item.name}</h4>
+                          <p className="text-xs text-dark-500 mt-1">
+                            {item.selectedSize && `Size: ${item.selectedSize}`}
+                            {item.selectedColor && ` / Color: ${item.selectedColor}`}
                           </p>
-                          <p className="text-xs text-dark-600 mb-2">
-                            Qty: {item.quantity}
-                            {item.selectedSize && ` • Size: ${item.selectedSize}`}
-                            {item.selectedColor && ` • ${item.selectedColor}`}
-                          </p>
-                          <p className="text-sm font-semibold">
-                            {formatPrice(itemPrice * item.quantity)}
-                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">{formatPrice(itemPrice * item.quantity)}</p>
                         </div>
                       </div>
                     );
                   })}
                 </div>
 
-                {/* Coupon Code Input */}
-                <div className="border-t border-dark-200 pt-4 mb-4">
-                  {!appliedCoupon ? (
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-dark-700">Coupon Code</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={couponCode}
-                          onChange={(e) => {
-                            setCouponCode(e.target.value.toUpperCase());
-                            setCouponError('');
-                          }}
-                          placeholder="Enter code"
-                          className="flex-1 px-3 py-2 border border-dark-300 rounded text-sm focus:ring-2 focus:ring-gray-900 focus:border-transparent uppercase"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleApplyCoupon}
-                          disabled={couponLoading}
-                          className="px-4 py-2 bg-gray-900 text-white rounded text-sm hover:bg-gray-800 disabled:opacity-50"
-                        >
-                          {couponLoading ? 'Checking...' : 'Apply'}
-                        </button>
-                      </div>
-                      {couponError && (
-                        <p className="text-xs text-red-600 mt-1">{couponError}</p>
-                      )}
+                {/* Coupon Code */}
+                <div className="py-6 border-t border-dark-200">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-400" size={16} />
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="Coupon Code"
+                        className="w-full pl-10 pr-4 py-2 border border-dark-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-black"
+                        disabled={!!appliedCoupon || couponLoading}
+                      />
                     </div>
-                  ) : (
-                    <div className="bg-green-50 border border-green-200 rounded p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Tag size={16} className="text-green-600" />
-                          <span className="text-sm font-medium text-green-900">{appliedCoupon.code}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleRemoveCoupon}
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    </div>
+                    {appliedCoupon ? (
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="p-2 text-dark-400 hover:text-red-500 transition-colors"
+                      >
+                        <X size={20} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={couponLoading || !couponCode.trim()}
+                        className="px-4 py-2 bg-black text-white text-sm font-medium rounded disabled:opacity-50"
+                      >
+                        {couponLoading ? '...' : 'Apply'}
+                      </button>
+                    )}
+                  </div>
+                  {couponError && (
+                    <p className="mt-2 text-xs text-red-500">{couponError}</p>
+                  )}
+                  {appliedCoupon && (
+                    <p className="mt-2 text-xs text-emerald-600 flex items-center gap-1">
+                      <Check size={12} />
+                      Coupon "{appliedCoupon.code}" applied
+                    </p>
                   )}
                 </div>
 
                 {/* Totals */}
-                <div className="space-y-3 border-t border-dark-200 pt-4">
+                <div className="space-y-3 pt-6 border-t border-dark-200">
                   <div className="flex justify-between text-sm">
                     <span className="text-dark-600">Subtotal</span>
                     <span className="font-medium">{formatPrice(totalPrice)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-dark-600">Shipping</span>
-                    <span className="font-medium">
-                      {shipping === 0 ? (
-                        <span className="text-green-600">Free</span>
-                      ) : (
-                        formatPrice(shipping)
-                      )}
+                    <span className={`font-medium ${shipping === 0 ? 'text-emerald-600' : ''}`}>
+                      {shipping === 0 ? 'FREE' : formatPrice(shipping)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -749,23 +701,22 @@ export default function CheckoutPage() {
                     <span className="font-medium">{formatPrice(tax)}</span>
                   </div>
                   {discount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Discount ({appliedCoupon.code})</span>
-                      <span className="font-medium">-{formatPrice(discount)}</span>
+                    <div className="flex justify-between text-sm text-emerald-600 font-medium">
+                      <span>Discount</span>
+                      <span>-{formatPrice(discount)}</span>
                     </div>
                   )}
-                  <div className="border-t border-dark-200 pt-4">
-                    <div className="flex justify-between text-lg font-semibold">
+                  <div className="border-t border-dark-200 pt-4 mt-4">
+                    <div className="flex justify-between text-lg font-semibold uppercase tracking-tight">
                       <span>Total</span>
                       <span>{formatPrice(finalTotal)}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Continue Shopping Link */}
                 <Link
                   href="/products"
-                  className="block text-center text-sm text-dark-600 hover:text-black mt-6 pt-6 border-t border-dark-200 transition-colors"
+                  className="block text-center text-sm text-dark-600 hover:text-black mt-6 pt-6 border-t border-dark-200 transition-colors uppercase tracking-widest text-[10px] font-bold"
                 >
                   Continue Shopping
                 </Link>

@@ -16,17 +16,27 @@ import {
   ShoppingCart,
   Tag,
   MessageSquare,
-  Star
+  Star,
+  RefreshCcw,
+  ShieldCheck,
+  Truck,
+  CreditCard,
+  Percent
 } from 'lucide-react';
 import { api } from '@/src/lib/api';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
   { icon: ShoppingCart, label: 'Orders', href: '/admin/orders' },
+  { icon: ShieldCheck, label: 'Verifications', href: '/admin/payment-verification' },
   { icon: Package, label: 'Products', href: '/admin/products' },
   { icon: FolderTree, label: 'Categories', href: '/admin/categories' },
+  { icon: Truck, label: 'Delivery', href: '/admin/delivery' },
+  { icon: CreditCard, label: 'Payments', href: '/admin/payments' },
+  { icon: Percent, label: 'Tax Settings', href: '/admin/tax' },
   { icon: Tag, label: 'Coupons', href: '/admin/coupons' },
-  { icon: Star, label: 'Reviews', href: '/admin/reviews' }, // Added Reviews
+  { icon: Star, label: 'Reviews', href: '/admin/reviews' },
+  { icon: RefreshCcw, label: 'Returns', href: '/admin/returns' },
   { icon: Users, label: 'Users', href: '/admin/users' },
   { icon: MessageSquare, label: 'Chats', href: '/admin/chat' },
   { icon: BarChart3, label: 'Analytics', href: '/admin/analytics' },

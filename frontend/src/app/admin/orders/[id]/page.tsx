@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
     ArrowLeft, Package, Truck, CreditCard, User,
-    MapPin, Calendar, Mail, Phone, ChevronDown, Printer
+    MapPin, Calendar, Mail, Phone, ChevronDown, Printer, ShieldCheck
 } from 'lucide-react';
 import { api } from '@/src/lib/api';
 import { useToast } from '@/src/components/common/Toast';
@@ -22,7 +22,7 @@ export default function OrderDetailsPage() {
     const [isPaymentMenuOpen, setIsPaymentMenuOpen] = useState(false);
 
     // Helper to safely get the ID
-    const orderId = Array.isArray(params?.id) ? params?.id[0] : params?.id;
+    const orderId = (Array.isArray(params?.id) ? params?.id[0] : params?.id) as string;
 
     useEffect(() => {
         const fetchOrder = async (isInitial = false) => {
@@ -358,11 +358,25 @@ export default function OrderDetailsPage() {
                                 <span>{formatPrice(order.subtotal || order.OrderItems?.filter((i: any) => i.status !== 'cancelled').reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0) || order.total)}</span>
                             </div>
 
+                            {order.shippingCharges > 0 && (
+                                <div className="flex justify-between items-center text-sm text-gray-600">
+                                    <span>Shipping</span>
+                                    <span>{formatPrice(order.shippingCharges)}</span>
+                                </div>
+                            )}
+
+                            {order.taxAmount > 0 && (
+                                <div className="flex justify-between items-center text-sm text-gray-600">
+                                    <span>Tax</span>
+                                    <span>{formatPrice(order.taxAmount)}</span>
+                                </div>
+                            )}
+
                             {order.couponCode && (
-                                <div className="flex justify-between items-center text-sm text-green-600 font-medium">
+                                <div className="flex justify-between items-center text-sm text-green-600 font-medium bg-green-50/50 px-2 py-1 rounded">
                                     <span className="flex items-center gap-1.5">
-                                        <Package size={14} className="rotate-12" />
-                                        Coupon applied ({order.couponCode})
+                                        <Package size={14} className="rotate-12 text-green-600" />
+                                        Coupon ({order.couponCode})
                                     </span>
                                     <span>-{formatPrice(order.couponDiscount || 0)}</span>
                                 </div>
@@ -380,6 +394,144 @@ export default function OrderDetailsPage() {
             <h2 className="font-semibold mb-4">Order Activity</h2>
             <p className="text-gray-500 text-sm">No activity recorded yet.</p>
           </div> */}
+                    
+                    {/* Payment Verification Proofs */}
+                    {order.PaymentProofs && order.PaymentProofs.length > 0 && (
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 overflow-hidden">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="font-semibold flex items-center gap-2 text-dark-800">
+                                    <ShieldCheck size={20} className="text-blue-600" />
+                                    Verification Log
+                                </h2>
+                                <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-bold text-gray-500 uppercase tracking-widest">
+                                    {order.PaymentProofs.length} Submission{order.PaymentProofs.length > 1 ? 's' : ''}
+                                </span>
+                            </div>
+
+                            <div className="divide-y divide-gray-100 -mx-6">
+                                {order.PaymentProofs.map((proof: any) => (
+                                    <div key={proof.id} className="px-6 py-4 hover:bg-gray-50/50 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            {/* Thumbnail */}
+                                            {proof.screenshot && (
+                                                <div 
+                                                    className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-gray-100 cursor-zoom-in shrink-0 relative group"
+                                                    onClick={() => window.open(api.getImageUrl(proof.screenshot!), '_blank')}
+                                                >
+                                                    <img 
+                                                        src={api.getImageUrl(proof.screenshot!)} 
+                                                        alt="Proof" 
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                        <Package size={14} className="text-white" />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2 mb-1">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">
+                                                        TxID: <span className="text-black font-mono">{proof.transactionId || 'N/A'}</span>
+                                                    </p>
+                                                    <span className={`text-[8px] px-1.5 py-0.5 rounded-full uppercase font-bold tracking-tighter border ${
+                                                        proof.status === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
+                                                        proof.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-100' :
+                                                        'bg-yellow-50 text-yellow-700 border-yellow-100'
+                                                    }`}>
+                                                        {proof.status}
+                                                    </span>
+                                                </div>
+                                                
+                                                {proof.note && (
+                                                    <p className="text-[10px] text-gray-600 italic line-clamp-1 mb-1">"{proof.note}"</p>
+                                                )}
+                                                
+                                                <p className="text-[9px] text-gray-400">
+                                                    Submitted {new Date(proof.createdAt).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className="mt-3 flex items-center gap-2">
+                                            {proof.status === 'pending' ? (
+                                                <>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                setUpdating(true);
+                                                                await api.verifyPaymentProof(proof.id, { status: 'approved' });
+                                                                await api.updateOrderPaymentStatus(orderId, 'paid');
+                                                                const data = await api.getOrder(orderId);
+                                                                setOrder(data);
+                                                                showToast('Payment verified', 'success');
+                                                            } catch (err: any) {
+                                                                showToast(err.message || 'Error', 'error');
+                                                            } finally {
+                                                                setUpdating(false);
+                                                            }
+                                                        }}
+                                                        className="flex-1 py-1.5 bg-black text-white text-[9px] font-bold rounded uppercase tracking-widest hover:bg-gray-800 transition-colors"
+                                                        disabled={updating}
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            const reason = window.prompt('Reason for rejection:');
+                                                            if (reason === null) return;
+                                                            try {
+                                                                setUpdating(true);
+                                                                await api.verifyPaymentProof(proof.id, { status: 'rejected', adminNote: reason });
+                                                                const data = await api.getOrder(orderId);
+                                                                setOrder(data);
+                                                                showToast('Rejected', 'info');
+                                                            } catch (err: any) {
+                                                                showToast(err.message || 'Error', 'error');
+                                                            } finally {
+                                                                setUpdating(false);
+                                                            }
+                                                        }}
+                                                        className="px-3 py-1.5 bg-white text-red-600 text-[9px] font-bold rounded border border-red-100 uppercase tracking-widest hover:bg-red-50 transition-colors"
+                                                        disabled={updating}
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <button
+                                                    onClick={async () => {
+                                                        const confirmed = window.confirm('Revert this proof to pending?');
+                                                        if (!confirmed) return;
+                                                        try {
+                                                            setUpdating(true);
+                                                            await api.verifyPaymentProof(proof.id, { status: 'pending' });
+                                                            // If we were paid, maybe revert to pending
+                                                            if (order.paymentStatus === 'paid') {
+                                                                await api.updateOrderPaymentStatus(orderId, 'pending');
+                                                            }
+                                                            const data = await api.getOrder(orderId);
+                                                            setOrder(data);
+                                                            showToast('Reverted to pending', 'info');
+                                                        } catch (err: any) {
+                                                            showToast(err.message || 'Error', 'error');
+                                                        } finally {
+                                                            setUpdating(false);
+                                                        }
+                                                    }}
+                                                    className="text-[10px] text-gray-500 hover:text-blue-700 font-bold uppercase tracking-widest transition-colors flex items-center gap-1.5 py-1.5 px-3 bg-gray-50 rounded border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30"
+                                                    disabled={updating}
+                                                >
+                                                    <ArrowLeft size={12} className="shrink-0" /> REVERT TO PENDING
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column - Customer & Shipping */}
@@ -429,6 +581,7 @@ export default function OrderDetailsPage() {
                         </div>
                     </div>
 
+
                     {/* Payment Info */}
                     <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
                         <div className="flex items-center justify-between mb-4">
@@ -466,10 +619,12 @@ export default function OrderDetailsPage() {
                                 )}
                             </div>
                         </div>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between items-center">
                                 <span className="text-gray-500">Method</span>
-                                <span className="font-medium capitalize">{order.paymentInfo?.method || 'COD'}</span>
+                                <span className="font-bold text-gray-900 bg-gray-50 px-2 py-0.5 rounded border border-gray-100 uppercase text-[10px] tracking-wider">
+                                    {(order.paymentMethod || order.paymentInfo?.method || 'COD').replace('_', ' ')}
+                                </span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Status</span>

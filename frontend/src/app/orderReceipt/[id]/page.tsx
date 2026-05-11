@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle2, Mail, Truck, Package, CreditCard, MapPin, Download, Printer, Clock, Check } from 'lucide-react';
+import { CheckCircle2, Mail, Truck, Package, CreditCard, MapPin, Download, Printer, Clock, Check, ShieldCheck, MessageSquare } from 'lucide-react';
 import { useOrderStore } from '@/src/lib/store';
 import { useToast } from '@/src/components/common/Toast';
 import { toPng } from 'html-to-image';
@@ -29,6 +29,7 @@ export default function OrderReceiptPage() {
   const orderId = rawId ? decodeURIComponent(Array.isArray(rawId) ? rawId[0] : rawId) : 'UNKNOWN';
 
   const [fetchedOrder, setFetchedOrder] = useState<any>(null);
+  const [transactionId, setTransactionId] = useState('');
 
   // Poll for valid data
   useEffect(() => {
@@ -67,11 +68,11 @@ export default function OrderReceiptPage() {
       selectedSize: item.selectedSize,
       selectedColor: item.selectedColor
     })) || [],
-    subtotal: fetchedOrder.subtotal || fetchedOrder.total + (fetchedOrder.couponDiscount || 0),
-    shipping: 0, // Simplified
+    subtotal: fetchedOrder.subtotal || fetchedOrder.total + (fetchedOrder.couponDiscount || 0) - (fetchedOrder.shippingCharges || 0) - (fetchedOrder.taxAmount || 0),
+    shipping: fetchedOrder.shippingCharges || 0,
     discount: fetchedOrder.couponDiscount || 0,
     couponCode: fetchedOrder.couponCode,
-    tax: 0,
+    tax: fetchedOrder.taxAmount || 0,
     total: fetchedOrder.total,
     shippingAddress: typeof fetchedOrder.shippingAddress === 'string' ? JSON.parse(fetchedOrder.shippingAddress) : fetchedOrder.shippingAddress,
     paymentMethod: fetchedOrder.paymentInfo?.method || "Online",
@@ -81,23 +82,29 @@ export default function OrderReceiptPage() {
     status: fetchedOrder.status, // Include status for UI
   } : null;
 
-  const displayOrder = transformedOrder || currentOrder || {
-    customerName: "Valued Customer",
-    orderNumber: orderId.replace('#', ''),
-    estimatedDelivery: "3-5 Business Days",
-    items: [],
-    subtotal: 0,
-    shipping: 0,
-    discount: 0,
-    tax: 0,
-    total: 0,
-    shippingAddress: { name: "N/A", street: "", city: "", state: "", zipCode: "", country: "" },
-    paymentMethod: "Online (Verified)",
-    email: "",
-    phone: "",
-    orderDate: isClient ? new Date().toLocaleDateString() : "Processing...",
-    status: "pending"
-  };
+  const displayOrder = transformedOrder || currentOrder;
+
+  // Loading state if no order data is available yet
+  if (!displayOrder && !isClient) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
+        <Clock className="animate-spin text-dark-200 mb-4" size={48} />
+        <p className="text-dark-400 font-light uppercase tracking-widest text-xs">Authenticating Order...</p>
+      </div>
+    );
+  }
+
+  // Final check for missing data
+  if (!displayOrder) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4 text-center">
+        <Package className="text-dark-100 mb-6" size={64} />
+        <h2 className="text-2xl font-light mb-2 uppercase tracking-tight">Order Not Found</h2>
+        <p className="text-dark-500 mb-8 max-w-md">We couldn't locate your order details. Please verify the link or contact support if the problem persists.</p>
+        <Link href="/products" className="px-8 py-3 bg-black text-white font-semibold uppercase tracking-widest text-xs">Return to Store</Link>
+      </div>
+    );
+  }
 
   const orderData = displayOrder as any;
   const formatPrice = (price: number) => `Rs ${price.toLocaleString('en-PK')}`;
@@ -276,11 +283,16 @@ export default function OrderReceiptPage() {
                       </div>
                     );
                   })}
+                  {orderData.items.length === 0 && (
+                    <div className="p-12 text-center text-dark-400 italic font-light tracking-wide uppercase text-xs">
+                      No items found for this order.
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Shipping & Payment Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Info Cards Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Shipping Address */}
                 <div className="bg-white rounded-lg border border-dark-200 p-6">
                   <h3 className="font-light text-lg mb-4 uppercase tracking-wide flex items-center gap-3">
@@ -440,6 +452,92 @@ export default function OrderReceiptPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Payment Proof Section (for manual payments) */}
+                {['bank_transfer', 'easypaisa', 'jazzcash'].includes(fetchedOrder?.paymentMethod) && orderData.status === 'pending_payment' && (
+                  <div className="bg-white rounded-lg border-2 border-amber-200 overflow-hidden animate-pulse-subtle shadow-lg shadow-amber-500/10">
+                    <div className="px-6 py-4 bg-amber-50 border-b border-amber-200">
+                      <h2 className="text-xl font-bold text-amber-900 uppercase tracking-tight flex items-center gap-3">
+                        <ShieldCheck size={24} className="text-amber-600" />
+                        Action Required: Payment Verification
+                      </h2>
+                    </div>
+                    <div className="p-8">
+                      <p className="text-amber-800 text-sm mb-8 leading-relaxed font-medium">
+                        To process your order, please enter your <span className="font-bold underline">Transaction ID</span> and either upload a screenshot or send it via WhatsApp.
+                      </p>
+
+                      <div className="mb-8 max-w-md">
+                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 mb-3">Transaction ID / Reference Number</label>
+                        <input 
+                          type="text"
+                          value={transactionId}
+                          onChange={(e) => setTransactionId(e.target.value)}
+                          placeholder="Enter your payment reference ID"
+                          className="w-full px-5 py-4 bg-white border-2 border-amber-100 rounded-2xl text-base focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 transition-all placeholder:text-amber-200"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Upload Option */}
+                        <div className="space-y-4">
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest italic">Option 1: Upload Screenshot</p>
+                          <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl transition-all group ${
+                            !transactionId ? 'border-gray-100 cursor-not-allowed opacity-50' : 'border-amber-200 cursor-pointer hover:bg-amber-50'
+                          }`}>
+                            <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                              <Download size={24} className={`${!transactionId ? 'text-gray-200' : 'text-amber-400 group-hover:text-amber-600'} transition-colors mb-2`} />
+                              <p className={`text-xs font-bold uppercase tracking-widest ${!transactionId ? 'text-gray-400' : 'text-amber-800'}`}>
+                                {!transactionId ? 'Enter ID First' : 'Select Screenshot'}
+                              </p>
+                            </div>
+                            <input 
+                              type="file" 
+                              className="hidden" 
+                              disabled={!transactionId}
+                              accept="image/*"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                try {
+                                  const formData = new FormData();
+                                  formData.append('orderId', fetchedOrder.id.toString());
+                                  formData.append('screenshot', file);
+                                  if (transactionId) formData.append('transactionId', transactionId);
+                                  
+                                  await api.uploadPaymentProof(formData);
+                                  showToast('Proof uploaded! Review in progress.', 'success');
+                                } catch (error: any) {
+                                  showToast(error.message || 'Upload failed', 'error');
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* WhatsApp Option */}
+                        <div className="space-y-4">
+                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest italic">Option 2: Submit via WhatsApp</p>
+                          <a 
+                            href={`https://wa.me/923160513841?text=${encodeURIComponent(
+                              `*PAYMENT PROOF SUBMISSION*\n\n` +
+                              `*Order Number:* ${orderData.orderNumber}\n` +
+                              `*Transaction ID:* ${transactionId || 'NOT PROVIDED'}\n` +
+                              `*Customer Name:* ${orderData.customerName}\n\n` +
+                              `I have completed the payment. Please verify my order.`
+                            )}`}
+                            target="_blank"
+                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-emerald-100 bg-emerald-50 rounded-2xl hover:bg-emerald-100 transition-all group"
+                          >
+                            <MessageSquare size={32} className="text-emerald-600 mb-3" />
+                            <p className="mb-2 text-xs text-emerald-800 font-bold uppercase tracking-widest">Send via WhatsApp</p>
+                            <p className="text-[10px] text-emerald-600 font-medium italic">Includes your Trans. ID</p>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Help Section */}
                 <div className="bg-white rounded-lg border border-dark-200 p-6">

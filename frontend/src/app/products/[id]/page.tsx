@@ -18,6 +18,7 @@ const SITE_NAME = 'Wearino.pk';
 
 // ─── Server-side product fetch (cached 1 hour) ───────────────────────────────
 async function fetchProductSeo(id: string) {
+  if (!id || id === 'undefined') return null;
   try {
     const res = await fetch(`${API_BASE}/api/product/${id}`, {
       next: { revalidate: 3600 }

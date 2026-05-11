@@ -9,6 +9,14 @@
   --color-dark-900: #111827;
 
   --color-white: #ffffff;
+  --color-gold-50: #fffcf0;
+  --color-gold-100: #fef9c3;
+  --color-gold-200: #fef08a;
+  --color-gold-300: #fde047;
+  --color-gold-400: #facc15;
+  --color-gold-500: #eab308;
+  --color-gold-600: #ca8a04;
+  --color-gold-700: #a16207;
   --aspect-portrait: 3 / 4;
 }
 
@@ -47,7 +55,11 @@
   }
 
   .card {
-    @apply bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow;
+    @apply bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300;
+  }
+
+  .dashboard-card {
+    @apply bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:border-gold-200 transition-all duration-300;
   }
 }
 

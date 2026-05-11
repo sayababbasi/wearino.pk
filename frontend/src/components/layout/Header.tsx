@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, ShoppingCart, Heart, Menu, X, User, ChevronDown, Package } from 'lucide-react';
+import { Search, ShoppingCart, Heart, Menu, X, User, ChevronDown, Package, LayoutDashboard, Truck } from 'lucide-react';
 import { useCartStore, useWishlistStore } from '@/src/lib/store';
 import CartDrawer from '@/src/components/cart/CartDrawer';
 import { api } from '@/src/lib/api';
@@ -38,17 +38,30 @@ export default function Header() {
 
   useEffect(() => {
     setIsMounted(true);
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try { setUser(JSON.parse(userStr)); } catch (e) { console.error('Error parsing user', e); }
-    }
-    const handleStorageChange = () => {
-      const u = localStorage.getItem('user');
-      setUser(u ? JSON.parse(u) : null);
+    const checkUser = () => {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try { setUser(JSON.parse(userStr)); } catch (e) { console.error('Error parsing user', e); setUser(null); }
+      } else {
+        setUser(null);
+      }
     };
+    
+    checkUser();
+    
+    const handleStorageChange = () => {
+      checkUser();
+    };
+    
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    // Also listen for custom login events if any
+    window.addEventListener('auth-change', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('auth-change', handleStorageChange);
+    };
+  }, [pathname]); // Re-check user when navigating between pages
 
   useEffect(() => {
     const fetchData = async () => {
@@ -219,8 +232,12 @@ export default function Header() {
               >
                 <User size={21} className="text-gray-700 stroke-[1.5]" />
                 <div className="leading-tight">
-                  <p className="text-[12px] font-semibold text-gray-900">Account</p>
-                  <p className="text-[10px] text-gray-500">Login / Register</p>
+                  <p className="text-[12px] font-semibold text-gray-900 truncate max-w-[80px]">
+                    {isMounted && user ? user.name.split(' ')[0] : 'Account'}
+                  </p>
+                  <p className="text-[10px] text-gray-500">
+                    {isMounted && user ? 'Manage Account' : 'Login / Register'}
+                  </p>
                 </div>
 
                 {/* Account Dropdown */}
@@ -237,8 +254,14 @@ export default function Header() {
                             <User size={15} /> Admin Dashboard
                           </Link>
                         )}
+                        <Link href="/account/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                          <LayoutDashboard size={15} /> My Dashboard
+                        </Link>
+                        <Link href="/account/orders" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                          <Package size={15} /> My Orders
+                        </Link>
                         <Link href="/track-order" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                          <Package size={15} /> Track My Order
+                          <Truck size={15} /> Track My Order
                         </Link>
                         <button
                           onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('user'); window.location.href = '/'; }}
@@ -285,7 +308,7 @@ export default function Header() {
               </button>
 
               {/* Mobile: account icon */}
-              <Link href="/auth/login" className="lg:hidden p-1 text-gray-700">
+              <Link href={isMounted && user ? "/account/dashboard" : "/auth/login"} className="lg:hidden p-1 text-gray-700">
                 <User size={22} className="stroke-[1.5]" />
               </Link>
             </div>
