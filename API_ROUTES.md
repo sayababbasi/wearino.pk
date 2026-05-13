@@ -2,7 +2,7 @@
 
 Complete list of all implemented API routes in the backend.
 
-**Base URL:** `http://localhost:5001/api`
+**Base URL:** `https://wearino-pk.onrender.com/api`
 
 ---
 

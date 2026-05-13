@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Base URL - Update this to match your backend
-  static const String baseUrl = 'http://localhost:5001';
+  static const String baseUrl = 'https://wearino-pk.onrender.com';
   // For Android emulator, use: 'http://10.0.2.2:5001'
   // For iOS simulator, use: 'http://localhost:5001'
   // For physical device, use your computer's IP: 'http://192.168.x.x:5001'

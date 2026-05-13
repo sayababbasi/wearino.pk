@@ -77,7 +77,7 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-Web UI will be available at: `http://localhost:3000`
+Web UI will be available at: `https://wearino-pk.vercel.app`
 
 ### 4. Setup Flutter Mobile App
 
@@ -196,7 +196,7 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 cd backend
 npm run dev
 ```
-**Runs on:** `http://localhost:5001`
+**Runs on:** `https://wearino-pk.onrender.com`
 
 ### Terminal 3: Next.js Web Frontend
 ```bash

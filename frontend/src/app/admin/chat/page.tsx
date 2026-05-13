@@ -4,7 +4,7 @@ import { io, Socket } from 'socket.io-client';
 import { Send, User, MessageSquare, Search, Bot, Headphones, Circle } from 'lucide-react';
 
 // Config
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api').replace(/\/api$/, '');
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://wearino-pk.onrender.com/api').replace(/\/api$/, '');
 
 interface Message {
     id: number;

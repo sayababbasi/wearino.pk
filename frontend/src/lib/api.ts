@@ -19,7 +19,7 @@
  * Determines the backend API endpoint URL.
  * Priority:
  * 1. NEXT_PUBLIC_API_URL environment variable (for production/staging)
- * 2. Default: http://localhost:5001/api (for local development)
+ * 2. Default: https://wearino-pk.onrender.com/api (for production fallback)
  * 
  * Set NEXT_PUBLIC_API_URL in .env.local for custom backend URLs.
  */
@@ -55,7 +55,7 @@ interface ApiResponse<T = any> {
  * 
  * Usage:
  * ```typescript
- * const client = new ApiClient('http://localhost:5001/api');
+ * const client = new ApiClient('https://wearino-pk.onrender.com/api');
  * const response = await client.get('/product');
  * if (response.data) {
  *   console.log(response.data);
@@ -323,12 +323,12 @@ class ApiClient {
     // Remove leading slash if present to avoid double slashes
     const cleanPath = path.startsWith('/') ? path.slice(1) : path;
 
-    // Use the baseURL's origin (e.g., http://localhost:5001) + path
+    // Use the baseURL's origin (e.g., https://wearino-pk.onrender.com) + path
     // We assume this.baseURL ends with /api, so we need to strip it or just use the origin
     // A safer way is to use the NEXT_PUBLIC_API_URL or fallback, but stripped of /api
 
     // Simple heuristic: if baseURL ends in /api, strip it. 
-    // If baseURL is http://localhost:5001/api -> http://localhost:5001/
+    // If baseURL is https://wearino-pk.onrender.com/api -> https://wearino-pk.onrender.com/
     const baseUrlOrigin = this.baseURL.endsWith('/api')
       ? this.baseURL.slice(0, -4)
       : this.baseURL;
