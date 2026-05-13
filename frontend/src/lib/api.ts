@@ -25,7 +25,7 @@
  */
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
   ? (process.env.NEXT_PUBLIC_API_URL.endsWith('/api') ? process.env.NEXT_PUBLIC_API_URL : `${process.env.NEXT_PUBLIC_API_URL}/api`)
-  : 'http://localhost:5001/api';
+  : 'https://wearino-pk.onrender.com/api';
 
 /**
  * API Response Interface
@@ -181,6 +181,10 @@ class ApiClient {
       if (!response.ok || (data && data.success === false)) {
         if (response.status === 401 && typeof window !== 'undefined') {
           localStorage.removeItem('token');
+          // Only redirect if not already on login page to avoid loops
+          if (!window.location.pathname.includes('/auth/login')) {
+            window.location.href = '/auth/login';
+          }
         }
 
         // Try to get error message from parsed data, or fallback to status text

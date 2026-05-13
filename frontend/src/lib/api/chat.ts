@@ -1,6 +1,6 @@
 // API base URL - hardcoded to port 5001 (5000 may be taken by macOS)
 // To change, update this value or set NEXT_PUBLIC_API_URL in .env.local
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001').replace(/\/api$/, '');
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://wearino-pk.onrender.com').replace(/\/api$/, '');
 
 export interface ChatMessage {
   chat_id?: string;

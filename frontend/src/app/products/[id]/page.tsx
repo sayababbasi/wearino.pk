@@ -12,7 +12,7 @@
 import type { Metadata } from 'next';
 import ProductDetailClient from './ProductDetailClient';
 
-const API_BASE  = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api').replace(/\/api$/, '');
+const API_BASE  = (process.env.NEXT_PUBLIC_API_URL || 'https://wearino-pk.onrender.com/api').replace(/\/api$/, '');
 const SITE_URL  = process.env.NEXT_PUBLIC_SITE_URL  || 'https://wearino.pk';
 const SITE_NAME = 'Wearino.pk';
 
