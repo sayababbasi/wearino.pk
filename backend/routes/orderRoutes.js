@@ -7,8 +7,10 @@ import {
   updatePaymentStatus,
   getMonthlyStats,
   cancelOrderItem,
-  trackOrder
+  trackOrder,
+  uploadPaymentProof
 } from "../controllers/orderController.js";
+import upload from "../middleware/upload.js";
 import { protect, isAdmin, authorize, optionalAuth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -36,5 +38,8 @@ router.put("/:id/deliver", protect, isAdmin, updateOrderStatus);
 // Update Payment Status (Admin only)
 router.put("/:id/payment-status", protect, isAdmin, updatePaymentStatus);
 router.put("/:id/pay", protect, isAdmin, updatePaymentStatus);
+
+// Upload Payment Proof
+router.post("/:id/payment-proof", optionalAuth, upload.single("screenshot"), uploadPaymentProof);
 
 export default router;

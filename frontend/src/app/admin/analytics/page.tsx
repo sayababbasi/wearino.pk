@@ -41,12 +41,12 @@ export default function AnalyticsPage() {
           api.getTopSellingProducts()
         ]);
 
-        const counts = results[0].status === 'fulfilled' ? results[0].value : null;
-        const topViewed = results[1].status === 'fulfilled' ? results[1].value : [];
-        const monthlyUsers = results[2].status === 'fulfilled' ? results[2].value : [];
-        const monthlyProducts = results[3].status === 'fulfilled' ? results[3].value : [];
-        const revenueData = results[4].status === 'fulfilled' ? results[4].value : [];
-        const topSellingData = results[5].status === 'fulfilled' ? results[5].value : { products: [] };
+        const counts = results[0].status === 'fulfilled' ? results[0].value as any : null;
+        const topViewed = results[1].status === 'fulfilled' ? results[1].value as any[] : [];
+        const monthlyUsers = results[2].status === 'fulfilled' ? results[2].value as any[] : [];
+        const monthlyProducts = results[3].status === 'fulfilled' ? results[3].value as any[] : [];
+        const revenueData = results[4].status === 'fulfilled' ? results[4].value as any[] : [];
+        const topSellingData = results[5].status === 'fulfilled' ? results[5].value as any : { products: [] };
 
         if (results[4].status === 'rejected') {
           console.error('Revenue Analytics failed:', results[4].reason);
@@ -56,7 +56,7 @@ export default function AnalyticsPage() {
         console.log('Analytics Debug - revenueData:', revenueData);
 
         setAnalyticsData({
-          counts: (counts && (counts as any).productsCount !== undefined) ? (counts as any) : {
+          counts: (counts && typeof counts === 'object' && 'productsCount' in counts) ? counts : {
             productsCount: 0, inquiriesCount: 0, totalViews: 0, totalRevenue: 0,
             revenueGrowth: 0, inquiriesGrowth: 0, usersGrowth: 0
           },

@@ -5,6 +5,7 @@
  */
 
 import Review from "../models/Review.js";
+import Product from "../models/Product.js";
 import Order from "../models/Order.js";
 import OrderItem from "../models/OrderItem.js";
 import User from "../models/User.js";
@@ -38,24 +39,27 @@ export const createReview = async (req, res) => {
             });
         }
 
-        // Verify purchase - check if user has an order with this product
+        // Verify purchase - check if user has a DELIVERED order with this product
         const userOrders = await Order.findAll({
-            where: { userId },
+            where: { 
+              userId,
+              status: 'delivered' // Only delivered orders can be reviewed
+            },
             include: [{
                 model: OrderItem,
-                as: "OrderItems",
                 where: { productId }
             }]
         });
 
-        let orderId = null;
-        let isVerifiedPurchase = false;
-
-        if (userOrders && userOrders.length > 0) {
-            // User has purchased this product
-            orderId = userOrders[0].id;
-            isVerifiedPurchase = true;
+        if (!userOrders || userOrders.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: "You can only review products from delivered orders"
+            });
         }
+
+        const orderId = userOrders[0].id;
+        const isVerifiedPurchase = true;
 
         // Create review
         const review = await Review.create({
@@ -303,12 +307,14 @@ export const canUserReview = async (req, res) => {
             });
         }
 
-        // Check if purchased
+        // Check if purchased and DELIVERED
         const userOrders = await Order.findAll({
-            where: { userId },
+            where: { 
+              userId,
+              status: 'delivered'
+            },
             include: [{
                 model: OrderItem,
-                as: "OrderItems",
                 where: { productId }
             }]
         });
@@ -318,7 +324,7 @@ export const canUserReview = async (req, res) => {
         res.json({
             success: true,
             canReview: hasPurchased,
-            reason: hasPurchased ? "can_review" : "not_purchased"
+            reason: hasPurchased ? "can_review" : (userOrders.length === 0 ? "not_delivered_or_not_purchased" : "not_delivered")
         });
     } catch (error) {
         console.error("Error checking review permission:", error);

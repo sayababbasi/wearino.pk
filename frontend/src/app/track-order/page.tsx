@@ -15,7 +15,21 @@ const STATUS_STEPS = [
   { id: 'delivered', label: 'Delivered', icon: MapPin, description: 'Order has been delivered' }
 ];
 
+import { Suspense } from 'react';
+
 export default function TrackOrderPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="animate-spin text-black" size={48} />
+      </div>
+    }>
+      <TrackOrderContent />
+    </Suspense>
+  );
+}
+
+function TrackOrderContent() {
   const searchParams = useSearchParams();
   const [orderId, setOrderId] = useState(searchParams?.get('id') || '');
   const [loading, setLoading] = useState(false);
@@ -90,7 +104,7 @@ export default function TrackOrderPage() {
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-12">
       <div className="container-custom max-w-4xl mx-auto px-4">
-        
+
         {/* Header Section */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-black mb-4 uppercase tracking-tighter text-black">
@@ -145,7 +159,7 @@ export default function TrackOrderPage() {
         {/* Results Section */}
         {order && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            
+
             {/* Quick Summary Card */}
             <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between gap-8">
               <div>
@@ -166,11 +180,11 @@ export default function TrackOrderPage() {
             {/* Visual Tracking Timeline */}
             <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm overflow-hidden">
               <h3 className="text-xl font-black mb-8 uppercase">Delivery Progress</h3>
-              
+
               <div className="relative">
                 {/* Progress Bar Line */}
                 <div className="absolute top-6 left-8 right-8 h-1 bg-gray-100 hidden md:block">
-                  <div 
+                  <div
                     className="h-full bg-black transition-all duration-1000 ease-out"
                     style={{ width: `${(currentStep / (STATUS_STEPS.length - 1)) * 100}%` }}
                   />
@@ -248,9 +262,9 @@ export default function TrackOrderPage() {
                   {order.items.map((item: any, index: number) => (
                     <div key={index} className="flex gap-4 p-3 rounded-2xl hover:bg-gray-50 transition-colors">
                       <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                        <img 
-                          src={api.getImageUrl(item.image)} 
-                          alt={item.name} 
+                        <img
+                          src={api.getImageUrl(item.image)}
+                          alt={item.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -262,15 +276,20 @@ export default function TrackOrderPage() {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="border-t border-gray-100 pt-6 space-y-3">
                   <div className="flex justify-between items-center text-gray-500 font-medium">
                     <span>Total Amount</span>
                     <span className="text-black font-black text-2xl">Rs {order.total.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between items-center text-gray-500 text-sm">
-                    <span>Payment Status</span>
-                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Verified</span>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-500 font-medium">Payment Status</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${['paid', 'verified'].includes(order.paymentStatus) ? 'bg-green-100 text-green-800' :
+                      order.paymentStatus === 'failed' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                      {order.paymentStatus || 'Pending'}
+                    </span>
                   </div>
                 </div>
               </div>

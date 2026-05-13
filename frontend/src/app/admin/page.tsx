@@ -116,17 +116,20 @@ export default function AdminDashboardPage() {
     const fetchOrders = async () => {
       try {
         const ordersResponse = (await api.getOrders()) as any;
-        const orders = ordersResponse?.orders || [];
+        const orders = Array.isArray(ordersResponse) ? ordersResponse : (ordersResponse?.orders || ordersResponse?.data?.orders || []);
         // Transform to match RecentOrders component format
-        const transformedOrders = orders.slice(0, 5).map((order: any) => ({
-          id: order.id?.toString(),
-          orderNumber: order.orderNumber || `#ORD-${order.id}`,
-          customer: order.shippingAddress?.name || order.User?.name || 'Guest',
-          product: order.OrderItems?.[0]?.Product?.name || 'Multiple items',
-          amount: `Rs ${order.total?.toFixed(2) || '0.00'}`,
-          status: order.status || 'pending',
-          date: order.createdAt ? new Date(order.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        }));
+        const transformedOrders = (orders || []).slice(0, 5).map((order: any) => {
+          if (!order) return null;
+          return {
+            id: order.id?.toString(),
+            orderNumber: order.orderNumber || `#ORD-${order.id}`,
+            customer: order.shippingAddress?.name || order.User?.name || 'Guest',
+            product: order.OrderItems?.[0]?.Product?.name || 'Multiple items',
+            amount: `Rs ${Number(order.total || 0).toFixed(2)}`,
+            status: order.status || 'pending',
+            date: order.createdAt ? new Date(order.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          };
+        }).filter(Boolean);
         setRecentOrders(transformedOrders);
 
         setDashboardStats(prev => ({

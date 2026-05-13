@@ -23,7 +23,9 @@
  * 
  * Set NEXT_PUBLIC_API_URL in .env.local for custom backend URLs.
  */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
+  ? (process.env.NEXT_PUBLIC_API_URL.endsWith('/api') ? process.env.NEXT_PUBLIC_API_URL : `${process.env.NEXT_PUBLIC_API_URL}/api`)
+  : 'http://localhost:5001/api';
 
 /**
  * API Response Interface
@@ -142,7 +144,7 @@ class ApiClient {
        * If token exists, adds it to Authorization header.
        * If no token, request proceeds without authentication (for public endpoints).
        */
-      const token = localStorage.getItem('token');
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       if (token) {
         config.headers = {
           ...config.headers,
@@ -176,8 +178,8 @@ class ApiClient {
        * 
        * If response status is not OK (200-299), treat as error.
        */
-      if (!response.ok) {
-        if (response.status === 401) {
+      if (!response.ok || (data && data.success === false)) {
+        if (response.status === 401 && typeof window !== 'undefined') {
           localStorage.removeItem('token');
         }
 
@@ -190,8 +192,10 @@ class ApiClient {
         };
       }
 
-      // Return successful response with data
-      return { data };
+      // Return successful response. 
+      // If the backend returns { success: true, data: ... }, we return the whole object 
+      // so convenience methods can access .data
+      return data;
     } catch (error) {
       /**
        * Handle Network/Request Errors
@@ -341,6 +345,12 @@ class ApiClient {
 export const apiClient = new ApiClient(API_BASE_URL);
 
 /**
+ * Get Image URL Helper
+ * Standalone export for better compatibility and tree-shaking.
+ */
+export const getImageUrl = (path: string | undefined): string => apiClient.getImageUrl(path);
+
+/**
  * API Convenience Methods
  * 
  * Provides type-safe, easy-to-use methods for common API operations.
@@ -399,7 +409,7 @@ export const api = {
     const response = await apiClient.get(endpoint);
     if (response.error) throw new Error(response.error);
 
-    const products = (response.data as any)?.products || [];
+    const products = (response.data as any)?.products || (response as any).products || [];
     return products.map((p: any) => ({
       product_id: p.id?.toString() || p.product_id,
       id: p.id,
@@ -457,41 +467,53 @@ export const api = {
   deleteProduct: async (id: string) => {
     const response = await apiClient.delete(`/product/${id}`);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
+  },
+
+  createProduct: async (productData: FormData | any) => {
+    const response = await apiClient.post('/product', productData);
+    if (response.error) throw new Error(response.error);
+    return (response as any).data || response;
+  },
+
+  updateProduct: async (id: string, productData: FormData | any) => {
+    const response = await apiClient.put(`/product/${id}`, productData);
+    if (response.error) throw new Error(response.error);
+    return (response as any).data || response;
   },
 
   // Helpers
-  getImageUrl: (path: string | undefined) => apiClient.getImageUrl(path),
+  getImageUrl,
 
   // Cart
   getCart: async () => {
     const response = await apiClient.get('/cart');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   addToCart: async (productId: string, quantity: number = 1) => {
     const response = await apiClient.post('/cart', { productId, quantity });
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   updateCartItem: async (cartItemId: string, quantity: number) => {
     const response = await apiClient.put(`/cart/item/${cartItemId}`, { quantity });
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   removeFromCart: async (cartItemId: string) => {
     const response = await apiClient.delete(`/cart/item/${cartItemId}`);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   clearCart: async () => {
     const response = await apiClient.delete('/cart');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   // Orders
@@ -504,37 +526,42 @@ export const api = {
   getOrders: async () => {
     const response = await apiClient.get('/order');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = response.data as any;
+    return Array.isArray(data) ? data : (data?.orders || []);
   },
 
   getOrder: async (id: string) => {
     const response = await apiClient.get(`/order/${id}`);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response.data as any)?.order || (response as any).order || (response.data as any);
   },
 
   trackOrder: async (id: string) => {
     const response = await apiClient.get(`/order/track/${encodeURIComponent(id)}`);
-    if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return {
+      success: (response as any).success !== false && (data as any).success !== false && ! (response as any).error,
+      order: data.order || (response as any).order,
+      message: (response as any).message || (data as any).message || (response as any).error
+    };
   },
 
   updateOrderStatus: async (id: string, status: string, options: any = {}) => {
     const response = await apiClient.put(`/order/${id}/status`, { status, ...options });
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response.data as any)?.order || (response as any).order || (response.data as any);
   },
 
   cancelOrderItem: async (orderId: string, itemId: string) => {
     const response = await apiClient.delete(`/order/${orderId}/items/${itemId}`);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response.data as any)?.order || (response as any).order || (response.data as any);
   },
 
   updateOrderPaymentStatus: async (id: string, status: 'pending' | 'paid' | 'failed' | 'refunded') => {
     const response = await apiClient.put(`/order/${id}/payment-status`, { status });
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response.data as any)?.order || (response as any).order || (response.data as any);
   },
 
   // Auth
@@ -567,37 +594,43 @@ export const api = {
   getMonthlyUserStats: async () => {
     const response = await apiClient.get('/admin/dashboard/charts/users');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.stats || data?.data || []);
   },
 
   getMonthlyProductStats: async () => {
     const response = await apiClient.get('/admin/dashboard/charts/products');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.stats || data?.data || []);
   },
 
   getLatestUsers: async () => {
     const response = await apiClient.get('/admin/dashboard/latest/users');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.users || []);
   },
 
   getLatestInquiries: async () => {
     const response = await apiClient.get('/admin/dashboard/latest/inquiries');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.inquiries || []);
   },
 
   getLowStockProducts: async () => {
     const response = await apiClient.get('/admin/dashboard/products/low-stock');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.products || []);
   },
 
   getMostWishlisted: async () => {
     const response = await apiClient.get('/admin/dashboard/products/most-wishlisted');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.products || data?.wishlisted || []);
   },
 
   // Categories
@@ -630,45 +663,53 @@ export const api = {
   getMonthlyStats: async (range: string = 'year') => {
     const response = await apiClient.get(`/order/stats/monthly?range=${range}`);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = response.data as any;
+    return Array.isArray(data) ? data : (data?.stats || []);
   },
 
   // Analytics
   getTopSellingProducts: async () => {
     const response = await apiClient.get('/product/top');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    // Standardize to return an object with products array to match page expectation
+    return {
+      products: Array.isArray(data) ? data : (data?.products || [])
+    };
   },
 
   getTopViewedProducts: async () => {
     const response = await apiClient.get('/analytics/top-viewed');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.products || data?.topViewed || []);
   },
 
   getAnalyticsCounts: async () => {
     const response = await apiClient.get('/analytics/counts');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   getRevenueAnalytics: async (range: string = 'year') => {
     const response = await apiClient.get(`/analytics/revenue?range=${range}`);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.revenue || data?.data || []);
   },
 
   // User Management (Admin)
   getAllUsers: async () => {
     const response = await apiClient.get('/auth/users');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.users || []);
   },
 
   updateUserRole: async (userId: string, role: string) => {
     const response = await apiClient.put(`/auth/users/${userId}/role`, { role });
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   deleteUser: async (userId: string) => {
@@ -699,31 +740,35 @@ export const api = {
 
     const response = await apiClient.get<any>(`/content?${params.toString()}`);
     if (response.error) throw new Error(response.error);
-    return response.data?.content || [];
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.content || data?.data || []);
   },
 
   getMyReviews: async () => {
     const response = await apiClient.get('/reviews/me');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.reviews || []);
   },
 
   getPendingReviewProducts: async () => {
     const response = await apiClient.get('/reviews/pending-products');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.products || []);
   },
 
   getProductReviews: async (productId: string) => {
     const response = await apiClient.get(`/reviews/product/${productId}`);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.reviews || []);
   },
 
   createReview: async (reviewData: any) => {
     const response = await apiClient.post('/reviews', reviewData);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   deleteMyReview: async (id: string) => {
@@ -735,19 +780,19 @@ export const api = {
   updateMyReview: async (id: string, reviewData: any) => {
     const response = await apiClient.put(`/reviews/${id}`, reviewData);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   createContent: async (contentData: any) => {
     const response = await apiClient.post('/content', contentData);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   updateContent: async (id: string, contentData: any) => {
     const response = await apiClient.put(`/content/${id}`, contentData);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   deleteContent: async (id: string) => {
@@ -769,24 +814,34 @@ export const api = {
     return response.data;
   },
 
+  getAdminReviews: async (status?: string) => {
+    const url = status ? `/admin/reviews?status=${status}` : '/admin/reviews';
+    const response = await apiClient.get(url);
+    if (response.error) throw new Error(response.error);
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.reviews || []);
+  },
+
   // Returns
   getReturnRequests: async () => {
     const response = await apiClient.get('/returns/me');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.requests || data?.returns || []);
   },
 
   createReturnRequest: async (returnData: { orderId: number; productId: number; reason: string; description?: string; images?: string[] }) => {
     const response = await apiClient.post('/returns', returnData);
     if (response.error) throw new Error(response.error);
-    return response.data;
+    return (response as any).data || response;
   },
 
   // Admin Returns
   getAllReturns: async () => {
     const response = await apiClient.get('/returns/admin/all');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.requests || []);
   },
 
   updateReturnStatus: async (id: string | number, status: string, adminNote?: string) => {
@@ -805,7 +860,8 @@ export const api = {
   getSettings: async () => {
     const response = await apiClient.get('/config/settings');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.settings || []);
   },
 
   updateSetting: async (key: string, value: any, group?: string) => {
@@ -817,7 +873,8 @@ export const api = {
   getDeliveryZones: async () => {
     const response = await apiClient.get('/config/delivery-zones');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.zones || data?.deliveryZones || []);
   },
 
   createDeliveryZone: async (zoneData: any) => {
@@ -841,7 +898,8 @@ export const api = {
   getPaymentMethods: async () => {
     const response = await apiClient.get('/config/payment-methods');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.methods || data?.paymentMethods || []);
   },
 
   updatePaymentMethod: async (id: number | string, methodData: any) => {
@@ -859,7 +917,8 @@ export const api = {
   getPaymentProofs: async () => {
     const response = await apiClient.get('/config/payment-proofs');
     if (response.error) throw new Error(response.error);
-    return response.data;
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.proofs || []);
   },
 
   verifyPaymentProof: async (id: number | string, data: { status: string; adminNote?: string }) => {
@@ -875,14 +934,20 @@ export const api = {
     return response;
   },
 
-  post: async <T = any>(endpoint: string, body?: any, options?: RequestInit) => {
-    const response = await apiClient.post<T>(endpoint, body, options);
+  post: async <T = any>(endpoint: string, data: any) => {
+    const response = await apiClient.post<T>(endpoint, data);
     if (response.error) throw new Error(response.error);
     return response;
   },
 
-  put: async <T = any>(endpoint: string, body?: any, options?: RequestInit) => {
-    const response = await apiClient.put<T>(endpoint, body, options);
+  put: async <T = any>(endpoint: string, data: any) => {
+    const response = await apiClient.put<T>(endpoint, data);
+    if (response.error) throw new Error(response.error);
+    return response;
+  },
+
+  patch: async <T = any>(endpoint: string, data: any) => {
+    const response = await apiClient.patch<T>(endpoint, data);
     if (response.error) throw new Error(response.error);
     return response;
   },
@@ -891,5 +956,31 @@ export const api = {
     const response = await apiClient.delete<T>(endpoint);
     if (response.error) throw new Error(response.error);
     return response;
+  },
+
+  // Coupons
+  getCoupons: async () => {
+    const response = await apiClient.get('/admin/coupons');
+    if (response.error) throw new Error(response.error);
+    const data = (response as any).data || response;
+    return Array.isArray(data) ? data : (data?.coupons || []);
+  },
+
+  createCoupon: async (couponData: any) => {
+    const response = await apiClient.post('/admin/coupons', couponData);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  updateCoupon: async (id: string | number, couponData: any) => {
+    const response = await apiClient.put(`/admin/coupons/${id}`, couponData);
+    if (response.error) throw new Error(response.error);
+    return response.data;
+  },
+
+  deleteCoupon: async (id: string | number) => {
+    const response = await apiClient.delete(`/admin/coupons/${id}`);
+    if (response.error) throw new Error(response.error);
+    return response.data;
   },
 };

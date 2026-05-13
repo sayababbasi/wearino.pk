@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Eye, MoreVertical, Truck, XCircle, RefreshCw, Package } from 'lucide-react';
+import { Eye, MoreVertical, Truck, XCircle, RefreshCw, Package, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import OrderStatusBadge, { OrderStatus } from './OrderStatusBadge';
 
@@ -26,6 +26,7 @@ export interface Order {
   paymentStatus: 'paid' | 'pending' | 'failed' | 'refunded';
   date: string;
   shippingAddress?: string;
+  hasPendingProof?: boolean;
 }
 
 interface OrdersTableProps {
@@ -149,15 +150,22 @@ export default function OrdersTable({
                   </div>
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold">
-                  Rs {order.total.toFixed(2)}
+                  Rs {Number(order.total || 0).toFixed(2)}
                 </td>
                 <td className="px-6 py-4">
                   <OrderStatusBadge status={order.status} />
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getPaymentBadge(order.paymentStatus)}`}>
-                    {order.paymentStatus}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-center ${getPaymentBadge(order.paymentStatus)}`}>
+                      {order.paymentStatus}
+                    </span>
+                    {order.hasPendingProof && (
+                      <span className="flex items-center gap-1 text-[9px] font-black text-blue-600 animate-pulse uppercase tracking-tighter">
+                        <ShieldCheck size={10} /> Proof Submitted
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
                   {new Date(order.date).toLocaleDateString()}

@@ -43,8 +43,8 @@ export default function UsersManagementPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await api.getAllUsers() as any;
-      setUsers(response?.users || []);
+      const data = await api.getAllUsers();
+      setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
@@ -240,7 +240,7 @@ export default function UsersManagementPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">{user.orders || 0}</td>
-                      <td className="px-6 py-4 text-sm font-semibold">Rs {(user.totalSpent || 0).toFixed(2)}</td>
+                      <td className="px-6 py-4 text-sm font-semibold">Rs {Number(user.totalSpent || 0).toFixed(2)}</td>
                       <td className="px-6 py-4 text-sm">
                         {user.joinedDate ? new Date(user.joinedDate).toLocaleDateString() : 'N/A'}
                       </td>

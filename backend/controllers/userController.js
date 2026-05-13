@@ -18,24 +18,22 @@ export const getAllUsers = async (req, res) => {
     // Get order statistics for each user
     const usersWithStats = await Promise.all(
       users.map(async (user) => {
-        const orders = await Order.findAll({
+        const stats = await Order.findOne({
           where: { userId: user.id },
           attributes: [
             [Sequelize.fn("COUNT", Sequelize.col("id")), "orderCount"],
-            [Sequelize.fn("SUM", Sequelize.col("total")), "totalSpent"],
+            [Sequelize.fn("SUM", Sequelize.col("total_amount")), "totalSpent"],
           ],
+          raw: true
         });
-
-        const orderCount = orders.length;
-        const totalSpent = orders.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0);
 
         return {
           id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
-          orders: orderCount,
-          totalSpent: totalSpent,
+          orders: parseInt(stats?.orderCount || 0),
+          totalSpent: parseFloat(stats?.totalSpent || 0),
           joinedDate: user.createdAt,
         };
       })
@@ -139,4 +137,3 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-

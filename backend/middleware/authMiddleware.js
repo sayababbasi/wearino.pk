@@ -38,7 +38,6 @@ const isAdmin = (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("isAdmin middleware error:", error.message);
     res.status(500).json({ message: "Internal server error" });
   }
 };

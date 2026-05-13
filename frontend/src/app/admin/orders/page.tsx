@@ -6,7 +6,7 @@ import OrdersTable, { Order } from '@/src/components/admin/OrdersTable';
 import OrderStatusBadge, { OrderStatus } from '@/src/components/admin/OrderStatusBadge';
 import StatsCard from '@/src/components/admin/StatsCard';
 import ConfirmationModal from '@/src/components/admin/ConfirmationModal';
-import { ShoppingCart, DollarSign, Clock, CheckCircle } from 'lucide-react';
+import { ShoppingCart, DollarSign, Clock, CheckCircle, Eye, MoreVertical, Truck, XCircle, RefreshCw, Package, ShieldCheck } from 'lucide-react';
 import { api, apiClient } from '@/src/lib/api';
 
 export default function OrdersPage() {
@@ -30,8 +30,8 @@ export default function OrdersPage() {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const response = await api.getOrders() as any;
-        const ordersData = response?.orders || [];
+        const data = await api.getOrders();
+        const ordersData = data || [];
 
         // Transform API response to match Order interface
         const transformedOrders: Order[] = ordersData.map((order: any) => ({
@@ -48,20 +48,21 @@ export default function OrdersPage() {
           firstItem: (order.OrderItems && order.OrderItems.length > 0) ? {
             name: order.OrderItems[0].Product?.name || 'Unknown Product',
             image: order.OrderItems[0].Product?.images && order.OrderItems[0].Product.images.length > 0
-              ? (order.OrderItems[0].Product.images[0].startsWith('http') ? order.OrderItems[0].Product.images[0] : `http://localhost:5001${order.OrderItems[0].Product.images[0].startsWith('/') ? '' : '/'}${order.OrderItems[0].Product.images[0]}`)
-              : order.OrderItems[0].Product?.image
-                ? (order.OrderItems[0].Product.image.startsWith('http') ? order.OrderItems[0].Product.image : `http://localhost:5001${order.OrderItems[0].Product.image.startsWith('/') ? '' : '/'}${order.OrderItems[0].Product.image}`)
-                : undefined,
+              ? api.getImageUrl(order.OrderItems[0].Product.images[0])
+              : order.OrderItems[0].Product.image
+                ? api.getImageUrl(order.OrderItems[0].Product.image)
+                : '/placeholder-product.png',
             size: order.OrderItems[0].selectedSize,
             color: order.OrderItems[0].selectedColor
           } : undefined,
           total: parseFloat(order.total || 0),
           status: (order.status || 'pending') as OrderStatus,
-          paymentStatus: (order.paymentStatus || (order.paymentMethod === 'stripe' ? 'paid' : 'pending')) as 'paid' | 'pending' | 'failed' | 'refunded',
+          paymentStatus: (order.paymentStatus || (order.paymentMethod === 'stripe' ? 'paid' : 'pending')) as 'paid' | 'verified' | 'pending' | 'failed' | 'rejected' | 'refunded',
           date: order.createdAt ? new Date(order.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           shippingAddress: order.shippingAddress ?
             `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.country}` :
             undefined,
+          hasPendingProof: order.PaymentProofs?.some((p: any) => p.status === 'pending') || false,
         }));
 
         setOrders(transformedOrders);
@@ -89,7 +90,7 @@ export default function OrdersPage() {
     pending: orders.filter(o => o.status === 'pending').length,
     processing: orders.filter(o => ['confirmed', 'processing', 'shipped'].includes(o.status)).length,
     completed: orders.filter(o => o.status === 'delivered').length,
-    revenue: orders.filter(o => o.paymentStatus === 'paid').reduce((sum, o) => sum + o.total, 0),
+    revenue: orders.filter(o => ['paid', 'verified'].includes(o.paymentStatus)).reduce((sum, o) => sum + o.total, 0),
   };
 
   // Filter orders
@@ -281,8 +282,10 @@ export default function OrdersPage() {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900"
           >
             <option value="all">All Payments</option>
+            <option value="verified">Verified</option>
             <option value="paid">Paid</option>
             <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
             <option value="failed">Failed</option>
             <option value="refunded">Refunded</option>
           </select>

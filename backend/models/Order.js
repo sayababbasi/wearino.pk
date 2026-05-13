@@ -3,11 +3,13 @@ import { sequelize } from "../config/db.js";
 import User from "./User.js";
 import OrderItem from "./OrderItem.js";
 import Product from "./Product.js";
+import PaymentProof from "./PaymentProof.js";
 
 const Order = sequelize.define("Order", {
   userId: {
     type: DataTypes.INTEGER,
-    allowNull: true, // Allow guest orders
+    allowNull: true,
+    field: 'user_id', // Map to snake_case for DB if preferred, but keep camelCase for JS
     references: {
       model: "users",
       key: "id",
@@ -15,60 +17,91 @@ const Order = sequelize.define("Order", {
   },
   orderNumber: {
     type: DataTypes.STRING,
-    allowNull: true, // Optional for backward compatibility, but valid for new orders
-    unique: true
+    allowNull: true,
+    unique: true,
+    field: 'order_number'
   },
   status: {
-    type: DataTypes.ENUM("pending", "paid", "confirmed", "processing", "shipped", "delivered", "cancelled"),
-    defaultValue: "pending",
+    type: DataTypes.STRING, // "pending_payment", "under_review", "confirmed", "processing", "shipped", "delivered", "cancelled", "returned"
+    defaultValue: "pending_payment",
+  },
+  rejectionReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    field: 'rejection_reason'
+  },
+  subtotal: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    field: 'subtotal'
+  },
+  deliveryCharges: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.00,
+    allowNull: true,
+    field: 'delivery_charges'
+  },
+  taxAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.00,
+    allowNull: true,
+    field: 'tax_amount'
+  },
+  taxPercentage: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0.00,
+    allowNull: true,
+    field: 'tax_percentage'
+  },
+  couponDiscount: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.00,
+    allowNull: true,
+    field: 'coupon_discount'
   },
   total: {
-    type: DataTypes.FLOAT,
-    allowNull: false,
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    field: 'total_amount'
   },
   shippingAddress: {
-    type: DataTypes.JSON, // Use JSON for address details
-    allowNull: false,
+    type: DataTypes.JSON,
+    allowNull: true,
+  },
+  paymentMethod: {
+    type: DataTypes.STRING, // cod, bank_transfer, easypaisa, jazzcash
+    allowNull: true,
+    field: 'payment_method'
   },
   paymentInfo: {
     type: DataTypes.JSON,
     allowNull: true,
   },
   paymentStatus: {
-    type: DataTypes.ENUM("pending", "paid", "failed", "refunded"),
+    type: DataTypes.STRING, // "pending", "verified", "paid", "failed", "refunded", "rejected"
     defaultValue: "pending",
+    field: 'payment_status'
+  },
+  paymentProofImage: {
+    type: DataTypes.STRING, // URL to screenshot (Cloudinary)
+    allowNull: true,
+    field: 'payment_proof_image'
   },
   couponCode: {
     type: DataTypes.STRING,
     allowNull: true,
-  },
-  couponDiscount: {
-    type: DataTypes.FLOAT,
-    allowNull: true,
-    defaultValue: 0,
-  },
-  subtotal: {
-    type: DataTypes.FLOAT,
-    allowNull: true,
-  },
-  shippingCharges: {
-    type: DataTypes.FLOAT,
-    allowNull: true,
-    defaultValue: 0,
-  },
-  taxAmount: {
-    type: DataTypes.FLOAT,
-    allowNull: true,
-    defaultValue: 0,
+    field: 'coupon_code'
   },
   statusHistory: {
     type: DataTypes.JSON,
     allowNull: true,
-    defaultValue: []
+    defaultValue: [],
+    field: 'status_history'
   },
 }, {
   tableName: "orders",
   timestamps: true,
+  underscored: true,
 });
 
 // Associations
@@ -80,5 +113,8 @@ OrderItem.belongsTo(Order, { foreignKey: "orderId" });
 
 Product.hasMany(OrderItem, { foreignKey: "productId" });
 OrderItem.belongsTo(Product, { foreignKey: "productId" });
+
+Order.hasMany(PaymentProof, { foreignKey: "orderId" });
+PaymentProof.belongsTo(Order, { foreignKey: "orderId" });
 
 export default Order;

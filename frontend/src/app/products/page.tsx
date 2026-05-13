@@ -51,7 +51,17 @@ const filterSections = [
   }
 ];
 
+import { Suspense } from 'react';
+
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="container-custom py-12 text-center">Loading products...</div>}>
+      <ProductsContent />
+    </Suspense>
+  );
+}
+
+function ProductsContent() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category');
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, ShoppingCart, Heart, Menu, X, User, ChevronDown, Package, LayoutDashboard, Truck } from 'lucide-react';
@@ -11,7 +11,7 @@ import { api } from '@/src/lib/api';
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  // searchParams moved to NavLinks component to avoid suspense issues on admin pages
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDropdown, setActiveDropdown] = useState<string | number | null>(null);
@@ -360,38 +360,15 @@ export default function Header() {
 
             {/* ── Nav Links ── */}
             <nav className="flex items-center">
-              {navLinks.map(link => {
-                // Precise active state logic
-                const linkPath = link.href.split('?')[0];
-                const linkQuery = link.href.split('?')[1] || '';
-                const isPathMatch = pathname === linkPath;
-                
-                let isActive = false;
-                if (isPathMatch) {
-                  if (linkQuery) {
-                    // Link has specific tags/params - match them exactly
-                    const lParams = new URLSearchParams(linkQuery);
-                    isActive = Array.from(lParams.entries()).every(([k, v]) => searchParams.get(k) === v);
-                  } else {
-                    // Base link (like SHOP) - active only if NO other specific params are present
-                    isActive = Array.from(searchParams.entries()).length === 0;
-                  }
-                }
-
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`px-4 pt-1.5 pb-2 text-[11px] font-bold tracking-[0.08em] border-b-2 transition-colors whitespace-nowrap ${
-                      isActive
-                        ? 'text-black border-black'
-                        : 'text-gray-500 border-transparent hover:text-black hover:border-gray-300'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
+              <Suspense fallback={
+                <>
+                  {navLinks.map(link => (
+                    <a key={link.href} href={link.href} className="px-4 pt-1.5 pb-2 text-[11px] font-bold tracking-[0.08em] border-b-2 border-transparent text-gray-500">{link.label}</a>
+                  ))}
+                </>
+              }>
+                <NavLinks pathname={pathname} navLinks={navLinks} />
+              </Suspense>
             </nav>
           </div>
         </div>
@@ -429,6 +406,49 @@ export default function Header() {
       </header>
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+    </>
+  );
+}
+
+// Sub-component to handle searchParams usage for active link highlighting
+// This must be inside the Header or wrapped in Suspense
+function NavLinks({ pathname, navLinks }: { pathname: string, navLinks: any[] }) {
+  const searchParams = useSearchParams();
+  
+  return (
+    <>
+      {navLinks.map(link => {
+        // Precise active state logic
+        const linkPath = link.href.split('?')[0];
+        const linkQuery = link.href.split('?')[1] || '';
+        const isPathMatch = pathname === linkPath;
+        
+        let isActive = false;
+        if (isPathMatch) {
+          if (linkQuery) {
+            // Link has specific tags/params - match them exactly
+            const lParams = new URLSearchParams(linkQuery);
+            isActive = Array.from(lParams.entries()).every(([k, v]) => searchParams.get(k) === v);
+          } else {
+            // Base link (like SHOP) - active only if NO other specific params are present
+            isActive = Array.from(searchParams.entries()).length === 0;
+          }
+        }
+
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`px-4 pt-1.5 pb-2 text-[11px] font-bold tracking-[0.08em] border-b-2 transition-colors whitespace-nowrap ${
+              isActive
+                ? 'text-black border-black'
+                : 'text-gray-500 border-transparent hover:text-black hover:border-gray-300'
+            }`}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
     </>
   );
 }

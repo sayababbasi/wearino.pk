@@ -163,7 +163,7 @@ export const createProduct = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Product created successfully",
-      product,
+      data: { product },
     });
   } catch (error) {
     console.error("Error creating product:", error);
@@ -287,7 +287,7 @@ export const getAllProducts = async (req, res) => {
         });
 
         if (allProducts.length === 0) {
-          return res.status(200).json({ success: true, products: [] });
+          return res.status(200).json({ success: true, data: { products: [] } });
         }
 
         // Normalisation maximums
@@ -336,7 +336,7 @@ export const getAllProducts = async (req, res) => {
         scored.sort((a, b) => b._score - a._score);
         const topTrending = scored.slice(0, 20).map(({ _score, ...rest }) => rest);
 
-        return res.status(200).json({ success: true, products: topTrending });
+        return res.status(200).json({ success: true, data: { products: topTrending } });
 
       } catch (err) {
         console.error("Advanced trending algo failed, falling back to latest:", err);
@@ -353,7 +353,7 @@ export const getAllProducts = async (req, res) => {
           const data = p.toJSON();
           return { ...data, product_id: data.id, category_name: data.category?.name || '', images: data.images || [] };
         });
-        return res.status(200).json({ success: true, products: sanitized });
+        return res.status(200).json({ success: true, data: { products: sanitized } });
       }
     }
 
@@ -392,10 +392,7 @@ export const getAllProducts = async (req, res) => {
     if (tag) {
       filteredProducts = filteredProducts.filter((product) => {
         const tags = product.tags || [];
-        if (Array.isArray(tags)) {
-          return tags.some(t => t.toLowerCase() === tag.toLowerCase());
-        }
-        return false;
+        return Array.isArray(tags) && tags.some(t => t.toLowerCase() === tag.toLowerCase());
       });
     }
 
@@ -458,7 +455,7 @@ export const getAllProducts = async (req, res) => {
       };
     });
 
-    res.status(200).json({ success: true, products: sanitizedProducts });
+    res.status(200).json({ success: true, data: { products: sanitizedProducts } });
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -537,7 +534,7 @@ export const getProductById = async (req, res) => {
     };
 
     // Return product
-    res.status(200).json({ success: true, product: sanitizedProduct });
+    res.status(200).json({ success: true, data: { product: sanitizedProduct } });
   } catch (error) {
     console.error("Error fetching product:", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -698,7 +695,7 @@ export const updateProduct = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Product updated successfully",
-      product,
+      data: { product },
     });
   } catch (error) {
     console.error("Error updating product:", error);

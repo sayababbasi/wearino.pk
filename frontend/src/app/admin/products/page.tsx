@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Search, Filter, MoreVertical, X, Eye } from 'lucide-react';
 import Link from 'next/link';
-import { api, apiClient } from '@/src/lib/api';
+import { api, apiClient, getImageUrl } from '@/src/lib/api';
 import { useToast } from '@/src/components/common/Toast';
 import ConfirmationModal from '@/src/components/admin/ConfirmationModal';
 import { useRouter } from 'next/navigation';
@@ -64,8 +64,8 @@ export default function AdminProductsPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response: any = await apiClient.get('/category');
-        setCategories(response.data?.categories || response.data || []);
+        const data = await api.getCategories();
+        setCategories(data || []);
       } catch (error) {
         console.error('Error fetching categories:', error);
       }
@@ -96,7 +96,7 @@ export default function AdminProductsPage() {
         formDataToSend.append('images', selectedFile);
       }
 
-      await api.post('/product', formDataToSend);
+      await api.createProduct(formDataToSend);
 
       showToast('Product added successfully', 'success');
 
@@ -303,7 +303,7 @@ export default function AdminProductsPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={api.getImageUrl(product.image || product.images?.[0])}
+                            src={getImageUrl(product.image || product.images?.[0])}
                             alt={product.name}
                             className="w-12 h-12 rounded object-cover"
                             onError={(e) => {
@@ -314,7 +314,7 @@ export default function AdminProductsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm">{product.category_name || 'Uncategorized'}</td>
-                      <td className="px-6 py-4 text-sm font-semibold">Rs {product.price?.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-sm font-semibold">Rs {Number(product.price || 0).toFixed(2)}</td>
                       <td className="px-6 py-4 text-sm">{product.stock || 0}</td>
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${(product.stock || 0) > 5 ? 'bg-green-100 text-green-800' :

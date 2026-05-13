@@ -86,7 +86,7 @@ const Product = sequelize.define("Product", {
    * Controls visibility: 'active', 'draft', 'archived'
    */
   status: {
-    type: DataTypes.ENUM('active', 'draft', 'archived'),
+    type: DataTypes.STRING, // 'active', 'draft', 'archived'
     defaultValue: 'active',
   },
 

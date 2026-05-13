@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Search, 
@@ -18,6 +18,21 @@ import Link from 'next/link';
 import { api } from '@/src/lib/api';
 
 export default function OrdersPage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-6 pb-20">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
+          <p className="text-sm text-gray-500">Loading your orders...</p>
+        </div>
+      </div>
+    }>
+      <OrdersContent />
+    </Suspense>
+  );
+}
+
+function OrdersContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const orderIdParam = searchParams.get('id');

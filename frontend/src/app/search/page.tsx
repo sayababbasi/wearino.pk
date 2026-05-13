@@ -8,7 +8,23 @@ import { api } from '@/src/lib/api';
 
 const ITEMS_PER_PAGE = 12;
 
+import { Suspense } from 'react';
+
 export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="container-custom py-16 text-center">
+        <div className="animate-spin inline-block w-8 h-8 border-4 border-current border-t-transparent text-black rounded-full" role="status">
+          <span className="sr-only">Loading...</span>
+        </div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
+  );
+}
+
+function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';

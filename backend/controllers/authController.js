@@ -35,7 +35,10 @@ export const register = async (req, res) => {
             JWT_SECRET,
             { expiresIn: "1h" }
         );
-        res.status(201).json({ user: newUser, token });
+        res.status(201).json({ 
+            success: true, 
+            data: { user: newUser, token } 
+        });
 
     } catch (error) {
         // Log full error for debugging
@@ -65,7 +68,10 @@ export const login = async (req, res) => {
             { expiresIn: "24h" }
         );
 
-        res.status(200).json({ user, token });
+        res.status(200).json({ 
+            success: true, 
+            data: { user, token } 
+        });
     } catch (error) {
         console.error("login error:", error && error.stack ? error.stack : error);
         const payload = { message: "Server error" };

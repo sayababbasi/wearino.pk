@@ -8,7 +8,7 @@ import { useOrderStore } from '@/src/lib/store';
 import { useToast } from '@/src/components/common/Toast';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
-import { api } from '@/src/lib/api';
+import { api, getImageUrl } from '@/src/lib/api';
 
 const CTA_BUTTON_CLASS =
   'group relative overflow-hidden px-8 py-3 font-semibold text-white bg-black border border-black transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed';
@@ -30,6 +30,8 @@ export default function OrderReceiptPage() {
 
   const [fetchedOrder, setFetchedOrder] = useState<any>(null);
   const [transactionId, setTransactionId] = useState('');
+  const [isProofSubmitted, setIsProofSubmitted] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Poll for valid data
   useEffect(() => {
@@ -63,19 +65,19 @@ export default function OrderReceiptPage() {
       name: item.Product?.name || "Product",
       price: item.price,
       quantity: item.quantity,
-      image: api.getImageUrl(item.Product?.images?.[0] || item.Product?.image),
+      image: getImageUrl(item.Product?.images?.[0] || item.Product?.image),
       description: item.Product?.description,
       selectedSize: item.selectedSize,
       selectedColor: item.selectedColor
     })) || [],
-    subtotal: fetchedOrder.subtotal || fetchedOrder.total + (fetchedOrder.couponDiscount || 0) - (fetchedOrder.shippingCharges || 0) - (fetchedOrder.taxAmount || 0),
-    shipping: fetchedOrder.shippingCharges || 0,
-    discount: fetchedOrder.couponDiscount || 0,
-    couponCode: fetchedOrder.couponCode,
-    tax: fetchedOrder.taxAmount || 0,
-    total: fetchedOrder.total,
+    subtotal: Number(fetchedOrder.subtotal || 0),
+    shipping: Number(fetchedOrder.deliveryCharges || fetchedOrder.delivery_charges || fetchedOrder.shippingCharges || 0),
+    discount: Number(fetchedOrder.couponDiscount || fetchedOrder.coupon_discount || 0),
+    couponCode: fetchedOrder.couponCode || fetchedOrder.coupon_code,
+    tax: Number(fetchedOrder.taxAmount || fetchedOrder.tax_amount || 0),
+    total: Number(fetchedOrder.total || fetchedOrder.total_amount || 0),
     shippingAddress: typeof fetchedOrder.shippingAddress === 'string' ? JSON.parse(fetchedOrder.shippingAddress) : fetchedOrder.shippingAddress,
-    paymentMethod: fetchedOrder.paymentInfo?.method || "Online",
+    paymentMethod: fetchedOrder.paymentMethod || fetchedOrder.payment_method || fetchedOrder.paymentInfo?.method || "Online",
     email: typeof fetchedOrder.shippingAddress === 'string' ? JSON.parse(fetchedOrder.shippingAddress).email : fetchedOrder.shippingAddress?.email || "",
     phone: typeof fetchedOrder.shippingAddress === 'string' ? JSON.parse(fetchedOrder.shippingAddress).phone : fetchedOrder.shippingAddress?.phone || "",
     orderDate: new Date(fetchedOrder.createdAt).toLocaleDateString(),
@@ -189,6 +191,38 @@ export default function OrderReceiptPage() {
             visibility: visible !important;
           }
         }
+
+        @keyframes pulse-subtle {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.95; transform: scale(0.99); }
+        }
+        @keyframes bounce-subtle {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .animate-pulse-subtle {
+          animation: pulse-subtle 3s infinite ease-in-out;
+        }
+        .animate-bounce-subtle {
+          animation: bounce-subtle 2s infinite ease-in-out;
+        }
+        .animate-in {
+          animation-fill-mode: forwards;
+        }
+        .fade-in {
+          animation: fadeIn 0.5s ease-out;
+        }
+        .zoom-in {
+          animation: zoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes zoomIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
       `}} />
 
       <div className="min-h-screen bg-dark-50 print-hidden">
@@ -205,8 +239,11 @@ export default function OrderReceiptPage() {
               <p className="text-xl text-dark-600 mb-2">
                 {currentOrder ? "Thank you," : "Hello,"} <span className="font-medium">{orderData.customerName.split(' ')[0]}</span>! {currentOrder && "🎉"}
               </p>
+              <div className="bg-black text-white px-6 py-2 inline-block rounded-full text-sm font-bold tracking-widest mb-6">
+                ORDER {orderData.orderNumber.toString().startsWith('#') ? orderData.orderNumber : `#${orderData.orderNumber}`}
+              </div>
               <p className="text-dark-600 mb-8">
-                Order <span className="font-semibold text-black">{orderData.orderNumber}</span> details are below.
+                Your order details and receipt are provided below.
               </p>
 
               {/* Quick Info Cards */}
@@ -255,11 +292,11 @@ export default function OrderReceiptPage() {
                       : item.price;
 
                     return (
-                      <div key={item.product_id} className="p-6 hover:bg-dark-50 transition-colors">
+                      <div key={`${item.product_id}-${item.selectedSize || 'default'}-${item.selectedColor || 'default'}`} className="p-6 hover:bg-dark-50 transition-colors">
                         <div className="flex gap-4">
                           <div className="relative shrink-0">
                             <img
-                              src={api.getImageUrl(item.image)}
+                              src={getImageUrl(item.image)}
                               alt={item.name}
                               className="w-24 h-24 object-cover rounded border border-dark-200"
                             />
@@ -454,87 +491,120 @@ export default function OrderReceiptPage() {
                 </div>
 
                 {/* Payment Proof Section (for manual payments) */}
-                {['bank_transfer', 'easypaisa', 'jazzcash'].includes(fetchedOrder?.paymentMethod) && orderData.status === 'pending_payment' && (
-                  <div className="bg-white rounded-lg border-2 border-amber-200 overflow-hidden animate-pulse-subtle shadow-lg shadow-amber-500/10">
+                {['bank_transfer', 'easypaisa', 'jazzcash', 'Bank Transfer', 'Easypaisa', 'JazzCash'].includes(fetchedOrder?.paymentMethod || orderData.paymentMethod) && 
+                 ['pending', 'pending_payment'].includes(orderData.status) && (
+                  <div className="bg-white rounded-lg border-2 border-amber-200 overflow-hidden animate-pulse-subtle shadow-lg shadow-amber-500/10 transition-all duration-500">
                     <div className="px-6 py-4 bg-amber-50 border-b border-amber-200">
                       <h2 className="text-xl font-bold text-amber-900 uppercase tracking-tight flex items-center gap-3">
                         <ShieldCheck size={24} className="text-amber-600" />
-                        Action Required: Payment Verification
+                        {isProofSubmitted ? 'Payment Proof Received' : 'Action Required: Payment Verification'}
                       </h2>
                     </div>
-                    <div className="p-8">
-                      <p className="text-amber-800 text-sm mb-8 leading-relaxed font-medium">
-                        To process your order, please enter your <span className="font-bold underline">Transaction ID</span> and either upload a screenshot or send it via WhatsApp.
-                      </p>
+                    
+                    <div className="p-8 relative min-h-[300px] flex flex-col justify-center">
+                      {!isProofSubmitted ? (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                          <p className="text-amber-800 text-sm mb-8 leading-relaxed font-medium">
+                            To process your order, please enter your <span className="font-bold underline">Transaction ID</span> and either upload a screenshot or send it via WhatsApp.
+                          </p>
 
-                      <div className="mb-8 max-w-md">
-                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 mb-3">Transaction ID / Reference Number</label>
-                        <input 
-                          type="text"
-                          value={transactionId}
-                          onChange={(e) => setTransactionId(e.target.value)}
-                          placeholder="Enter your payment reference ID"
-                          className="w-full px-5 py-4 bg-white border-2 border-amber-100 rounded-2xl text-base focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 transition-all placeholder:text-amber-200"
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Upload Option */}
-                        <div className="space-y-4">
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest italic">Option 1: Upload Screenshot</p>
-                          <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl transition-all group ${
-                            !transactionId ? 'border-gray-100 cursor-not-allowed opacity-50' : 'border-amber-200 cursor-pointer hover:bg-amber-50'
-                          }`}>
-                            <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                              <Download size={24} className={`${!transactionId ? 'text-gray-200' : 'text-amber-400 group-hover:text-amber-600'} transition-colors mb-2`} />
-                              <p className={`text-xs font-bold uppercase tracking-widest ${!transactionId ? 'text-gray-400' : 'text-amber-800'}`}>
-                                {!transactionId ? 'Enter ID First' : 'Select Screenshot'}
-                              </p>
-                            </div>
+                          <div className="mb-8 max-w-md">
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 mb-3">Transaction ID / Reference Number</label>
                             <input 
-                              type="file" 
-                              className="hidden" 
-                              disabled={!transactionId}
-                              accept="image/*"
-                              onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                try {
-                                  const formData = new FormData();
-                                  formData.append('orderId', fetchedOrder.id.toString());
-                                  formData.append('screenshot', file);
-                                  if (transactionId) formData.append('transactionId', transactionId);
-                                  
-                                  await api.uploadPaymentProof(formData);
-                                  showToast('Proof uploaded! Review in progress.', 'success');
-                                } catch (error: any) {
-                                  showToast(error.message || 'Upload failed', 'error');
-                                }
-                              }}
+                              type="text"
+                              value={transactionId}
+                              onChange={(e) => setTransactionId(e.target.value)}
+                              placeholder="Enter your payment reference ID"
+                              className="w-full px-5 py-4 bg-white border-2 border-amber-100 rounded-2xl text-base focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 transition-all placeholder:text-amber-200"
                             />
-                          </label>
-                        </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Upload Option */}
+                            <div className="space-y-4">
+                              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest italic">Option 1: Upload Screenshot</p>
+                              <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl transition-all group ${
+                                !transactionId || uploading ? 'border-gray-100 cursor-not-allowed opacity-50' : 'border-amber-200 cursor-pointer hover:bg-amber-50'
+                              }`}>
+                                <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                                  {uploading ? (
+                                    <Clock size={24} className="text-amber-400 animate-spin mb-2" />
+                                  ) : (
+                                    <Download size={24} className={`${!transactionId ? 'text-gray-200' : 'text-amber-400 group-hover:text-amber-600'} transition-colors mb-2`} />
+                                  )}
+                                  <p className={`text-xs font-bold uppercase tracking-widest ${!transactionId ? 'text-gray-400' : 'text-amber-800'}`}>
+                                    {uploading ? 'Uploading...' : (!transactionId ? 'Enter ID First' : 'Select Screenshot')}
+                                  </p>
+                                </div>
+                                <input 
+                                  type="file" 
+                                  className="hidden" 
+                                  disabled={!transactionId || uploading}
+                                  accept="image/*"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                      setUploading(true);
+                                      const formData = new FormData();
+                                      formData.append('orderId', fetchedOrder.id.toString());
+                                      formData.append('screenshot', file);
+                                      if (transactionId) formData.append('transactionId', transactionId);
+                                      
+                                      await api.uploadPaymentProof(formData);
+                                      setIsProofSubmitted(true);
+                                      showToast('Proof uploaded successfully!', 'success');
+                                    } catch (error: any) {
+                                      showToast(error.message || 'Upload failed', 'error');
+                                    } finally {
+                                      setUploading(false);
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
 
-                        {/* WhatsApp Option */}
-                        <div className="space-y-4">
-                          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest italic">Option 2: Submit via WhatsApp</p>
-                          <a 
-                            href={`https://wa.me/923160513841?text=${encodeURIComponent(
-                              `*PAYMENT PROOF SUBMISSION*\n\n` +
-                              `*Order Number:* ${orderData.orderNumber}\n` +
-                              `*Transaction ID:* ${transactionId || 'NOT PROVIDED'}\n` +
-                              `*Customer Name:* ${orderData.customerName}\n\n` +
-                              `I have completed the payment. Please verify my order.`
-                            )}`}
-                            target="_blank"
-                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-emerald-100 bg-emerald-50 rounded-2xl hover:bg-emerald-100 transition-all group"
-                          >
-                            <MessageSquare size={32} className="text-emerald-600 mb-3" />
-                            <p className="mb-2 text-xs text-emerald-800 font-bold uppercase tracking-widest">Send via WhatsApp</p>
-                            <p className="text-[10px] text-emerald-600 font-medium italic">Includes your Trans. ID</p>
-                          </a>
+                            {/* WhatsApp Option */}
+                            <div className="space-y-4">
+                              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest italic">Option 2: Submit via WhatsApp</p>
+                              <a 
+                                href={`https://wa.me/923160513841?text=${encodeURIComponent(
+                                  `*WEARINO.PK PAYMENT PROOF*\n\n` +
+                                  `*Order:* ${orderData.orderNumber}\n` +
+                                  `*Method:* ${orderData.paymentMethod}\n` +
+                                  `*Amount:* ${formatPrice(orderData.total)}\n` +
+                                  `*Transaction ID:* ${transactionId || 'WILL ATTACH SCREENSHOT'}\n` +
+                                  `*Customer:* ${orderData.customerName}\n\n` +
+                                  `I have completed the payment. Attached is my screenshot for verification.`
+                                )}`}
+                                target="_blank"
+                                onClick={() => setIsProofSubmitted(true)}
+                                className="flex flex-col items-center justify-center w-full h-32 border-2 border-emerald-500 bg-emerald-50 rounded-2xl hover:bg-emerald-100 transition-all group shadow-sm"
+                              >
+                                <MessageSquare size={32} className="text-emerald-600 mb-3" />
+                                <p className="mb-2 text-xs text-emerald-800 font-bold uppercase tracking-widest">Send via WhatsApp</p>
+                                <p className="text-[10px] text-emerald-600 font-medium italic">Click to send details + screenshot</p>
+                              </a>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-10 animate-in zoom-in duration-700">
+                          <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/20 animate-bounce-subtle">
+                            <Check size={48} className="text-white" strokeWidth={3} />
+                          </div>
+                          <h3 className="text-2xl font-bold text-dark-900 mb-2 uppercase tracking-tight">Submission Received</h3>
+                          <p className="text-dark-500 text-sm mb-8 text-center max-w-xs">
+                            We have received your payment proof. Our team will verify it within 1-2 hours during business hours.
+                          </p>
+                          <button 
+                            onClick={() => setIsProofSubmitted(false)}
+                            className="px-6 py-2 border-2 border-dark-900 text-dark-900 text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all rounded-full"
+                          >
+                            Re-upload Screenshot
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -639,7 +709,7 @@ export default function OrderReceiptPage() {
                   ? item.price * (1 - item.discount / 100)
                   : item.price;
                 return (
-                  <tr key={index}>
+                  <tr key={`${item.product_id}-${index}`}>
                     <td className="py-4 pr-4">
                       <p className="font-bold text-sm text-black">{item.name}</p>
                       <p className="text-xs text-black font-medium mt-1">{item.description || item.product_id}</p>

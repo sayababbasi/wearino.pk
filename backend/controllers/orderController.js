@@ -4,174 +4,213 @@ import Cart from "../models/Cart.js";
 import CartItem from "../models/CartItem.js";
 import Order from "../models/Order.js";
 import OrderItem from "../models/OrderItem.js";
+import PaymentProof from "../models/PaymentProof.js";
 import Product from "../models/Product.js";
 import Coupon from "../models/Coupon.js";
 import User from "../models/User.js";
+
+import Setting from "../models/Setting.js";
+import DeliveryZone from "../models/DeliveryZone.js";
+import PaymentMethod from "../models/PaymentMethod.js";
+import Notification from "../models/Notification.js";
 
 export const createOrder = async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { 
       shippingAddress, 
-      paymentMethod, 
-      items, 
+      paymentMethod: paymentMethodType, 
+      items, // For guests or direct checkout
       couponCode, 
-      couponDiscount, 
-      shippingCharges, 
-      taxAmount 
     } = req.body;
 
-    let orderItems = [];
+    // 0. Validation: Basic sanity checks
+    if (!shippingAddress || (!items && !req.user)) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: "Shipping address and items are required." });
+    }
 
-    // 1. Try to get items from DB Cart (if user logged in)
+    // 1. Fetch System Configs
+    const [globalTaxSetting, deliveryZones, paymentMethods] = await Promise.all([
+      Setting.findOne({ where: { key: 'global_tax_percent' } }),
+      DeliveryZone.findAll({ where: { isActive: true } }),
+      PaymentMethod.findAll({ where: { isActive: true } })
+    ]);
+
+    const globalTaxPercent = globalTaxSetting ? parseFloat(globalTaxSetting.value) : 0;
+    const selectedMethod = paymentMethods.find(m => m.type === paymentMethodType);
+    
+    // Find delivery zone
+    const city = (shippingAddress.city || '').trim().toLowerCase();
+    const state = (shippingAddress.state || '').trim().toLowerCase();
+    const selectedZone = deliveryZones.find(z => 
+      z.name.toLowerCase() === city || z.name.toLowerCase() === state
+    ) || deliveryZones.find(z => z.name.toLowerCase() === 'default' || z.name.toLowerCase() === 'other');
+
+    // 2. Resolve Items & Security Validation (Price/Stock)
+    let inputItems = [];
     if (req.user) {
       const cart = await Cart.findOne({
         where: { userId: req.user.id },
         include: [{ model: CartItem, include: [Product] }],
         transaction: t
       });
-
-      if (cart && cart.CartItems && cart.CartItems.length > 0) {
-        orderItems = cart.CartItems.map(ci => ({
-          productId: ci.productId,
-          quantity: ci.quantity,
-          price: ci.priceAtAdd || ci.Product?.price || 0,
-          selectedSize: ci.selectedSize || null,
-          selectedColor: ci.selectedColor || null,
-        }));
-      }
+      inputItems = (cart && cart.CartItems?.length > 0) ? cart.CartItems : (items || []);
+    } else {
+      inputItems = items || [];
     }
 
-    // 2. Fallback: If no items from DB (Guest OR Empty DB Cart), use request body
-    if (orderItems.length === 0) {
-      if (!items || items.length === 0) {
+    if (!inputItems || inputItems.length === 0) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: "No items found to create order." });
+    }
+
+    let orderItemsData = [];
+    let subtotal = 0;
+
+    for (const item of inputItems) {
+      const productId = item.productId || item.Product?.id;
+      const dbProduct = await Product.findByPk(productId, { transaction: t });
+      
+      if (!dbProduct) {
         await t.rollback();
-        return res.status(400).json({ message: "Cart is empty (No items provided)" });
+        return res.status(404).json({ success: false, message: `Product not found: ${productId}` });
       }
 
-      // Process items from body (Guest or Fallback)
-      for (const item of items) {
-        const product = await Product.findByPk(item.productId, { transaction: t });
-        if (!product) {
-          await t.rollback();
-          return res.status(404).json({ message: `Product ${item.productId} not found` });
-        }
-
-        orderItems.push({
-          productId: item.productId,
-          quantity: item.quantity,
-          price: product.price,
-          selectedSize: item.selectedSize || null,
-          selectedColor: item.selectedColor || null,
-        });
+      // Stock Validation
+      if (dbProduct.stock < item.quantity) {
+        await t.rollback();
+        return res.status(400).json({ success: false, message: `Insufficient stock for ${dbProduct.name}.` });
       }
+
+      const qty = parseInt(item.quantity);
+      const price = parseFloat(dbProduct.price);
+      subtotal += price * qty;
+
+      orderItemsData.push({
+        productId: dbProduct.id,
+        quantity: qty,
+        price: price,
+        selectedSize: item.selectedSize || null,
+        selectedColor: item.selectedColor || null,
+        name: dbProduct.name // for notification/wa
+      });
     }
 
-    // calculate subtotal
-    const subtotal = orderItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
-
-    // final total after discount, shipping and tax
-    const discountAmount = couponDiscount || 0;
-    const shipping = shippingCharges || 0;
-    const tax = taxAmount || 0;
-    const total = Math.max(0, subtotal + shipping + tax - discountAmount);
-
-    // Generate sequential order number in #W-XXX format
-    const orderCount = await Order.count({ transaction: t });
-    const nextOrderNumber = orderCount + 1;
-    const formattedOrderNumber = `#W-${String(nextOrderNumber).padStart(3, '0')}`;
-
-    // Create order
-    const order = await Order.create(
-      {
-        userId: req.user?.id || null, // null for guest users
-        status: paymentMethod === "cod" ? "pending" : "paid",
-        total,
-        subtotal,
-        shippingCharges: shipping,
-        taxAmount: tax,
-        couponCode: couponCode || null,
-        couponDiscount: discountAmount,
-        shippingAddress,
-        paymentInfo: { method: paymentMethod },
-        orderNumber: formattedOrderNumber,
-        paymentStatus: paymentMethod === "cod" ? "pending" : "paid",
-        statusHistory: [{
-          status: paymentMethod === "cod" ? "pending" : "paid",
-          message: paymentMethod === "cod" ? "Order placed (Cash on Delivery)" : "Order placed and paid",
-          timestamp: new Date()
-        }]
-      },
-      { transaction: t }
-    );
-
-    // create order items and reduce stock
-    for (const item of orderItems) {
-      // Stock fetch for future implementation but logging for now
-      const product = await Product.findByPk(item.productId, { transaction: t });
-      if (product) {
-        // console.log(`[createOrder] Current stock for ${product.name}: ${product.stock}`);
-      }
-
-      await OrderItem.create(
-        {
-          orderId: order.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-          selectedSize: item.selectedSize,
-          selectedColor: item.selectedColor,
-        },
-        { transaction: t }
-      );
-    }
-
-    // Increment coupon usage count if a coupon was applied
-    if (req.body.couponCode) {
+    // 3. Coupon Validation (Move before tax/shipping for correct calculation)
+    let discount = 0;
+    let validatedCouponCode = null;
+    if (couponCode) {
       const coupon = await Coupon.findOne({
-        where: { code: req.body.couponCode.toUpperCase() },
+        where: { code: couponCode.toUpperCase(), isActive: true },
         transaction: t
       });
 
       if (coupon) {
-        coupon.usageCount = (coupon.usageCount || 0) + 1;
-        if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) {
-          coupon.isActive = false;
+        const now = new Date();
+        const valid = (!coupon.expiryDate || new Date(coupon.expiryDate) > now) &&
+                      (!coupon.minPurchase || subtotal >= parseFloat(coupon.minPurchase));
+
+        if (valid) {
+          validatedCouponCode = coupon.code;
+          if (coupon.discountType === 'percentage') {
+            discount = (subtotal * parseFloat(coupon.discountValue)) / 100;
+            if (coupon.maxDiscount && discount > parseFloat(coupon.maxDiscount)) discount = parseFloat(coupon.maxDiscount);
+          } else {
+            discount = parseFloat(coupon.discountValue);
+          }
         }
-        await coupon.save({ transaction: t });
       }
     }
 
-    // clear cart (only for logged-in users)
-    if (req.user) {
-      const cart = await Cart.findOne({
-        where: { userId: req.user.id },
-        transaction: t
-      });
-      if (cart) {
-        await CartItem.destroy({ where: { cartId: cart.id }, transaction: t });
+    // 4. Advanced Financial Calculations
+    let shippingFee = selectedZone ? parseFloat(selectedZone.charge) : 200;
+    
+    // Free Delivery Threshold Support
+    if (selectedZone?.freeDeliveryThreshold && subtotal >= parseFloat(selectedZone.freeDeliveryThreshold)) {
+      shippingFee = 0;
+    }
+
+    // Apply discount BEFORE tax as per user request
+    const taxableAmount = Math.max(0, subtotal - discount);
+    const totalTax = (taxableAmount * globalTaxPercent) / 100;
+
+    // TOTAL = (subtotal - discount) + delivery + tax
+    const finalTotal = Math.max(0, taxableAmount + shippingFee + totalTax);
+
+    // 5. Status Flow Integration
+    // COD -> confirmed, others -> pending_payment
+    const initialStatus = paymentMethodType === 'cod' ? "confirmed" : "pending_payment";
+    
+    const orderCount = await Order.count({ transaction: t });
+    const formattedOrderNumber = `W-${String(1001 + orderCount).padStart(5, '0')}`;
+
+    // 6. Save Order
+    const order = await Order.create({
+      userId: req.user?.id || null,
+      orderNumber: formattedOrderNumber,
+      status: initialStatus,
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      deliveryCharges: parseFloat(shippingFee.toFixed(2)),
+      taxAmount: parseFloat(totalTax.toFixed(2)),
+      taxPercentage: parseFloat(globalTaxPercent.toFixed(2)),
+      couponCode: validatedCouponCode,
+      couponDiscount: parseFloat(discount.toFixed(2)),
+      total: parseFloat(finalTotal.toFixed(2)),
+      shippingAddress,
+      paymentMethod: paymentMethodType,
+      paymentStatus: "pending",
+      statusHistory: [{
+        status: initialStatus,
+        message: `Order initialized via ${paymentMethodType.toUpperCase()}.`,
+        timestamp: new Date()
+      }]
+    }, { transaction: t });
+
+    // 7. Save Items
+    await OrderItem.bulkCreate(orderItemsData.map(item => ({
+      ...item,
+      orderId: order.id
+    })), { transaction: t });
+
+    // 8. Inventory Management (Deduct stock for COD immediately)
+    if (paymentMethodType === 'cod') {
+      for (const item of orderItemsData) {
+        await Product.decrement('stock', { by: item.quantity, where: { id: item.productId }, transaction: t });
       }
+    }
+
+    // 9. Cleanup (Cart)
+    if (req.user) {
+      const cart = await Cart.findOne({ where: { userId: req.user.id } });
+      if (cart) await CartItem.destroy({ where: { cartId: cart.id }, transaction: t });
     }
 
     await t.commit();
 
-    const fullOrder = await Order.findByPk(order.id, {
-      include: [
-        { model: User, attributes: ['id', 'name', 'email'] },
-        {
-          model: OrderItem,
-          include: {
-            model: Product,
-            attributes: ['id', 'name', 'images', 'price', 'sku', 'description', 'stock']
-          }
-        }
-      ]
+    // 10. Post-creation Services (Notifications/Links)
+    const productNames = orderItemsData.map(i => i.name).join(", ");
+    const waText = `*New Order: ${formattedOrderNumber}*\n*Items:* ${productNames}\n*Total:* Rs ${finalTotal}\n*Method:* ${paymentMethodType.toUpperCase()}\n\nPlease verify.`;
+    const waLink = `https://wa.me/923160513841?text=${encodeURIComponent(waText)}`;
+
+    Notification.create({
+      type: 'new_order',
+      title: 'New Order',
+      message: `Order ${formattedOrderNumber} received. Total: Rs ${finalTotal}`,
+      link: `/admin/orders/${order.id}`
+    }).catch(() => {});
+
+    return res.status(201).json({
+      success: true,
+      message: "Order placed successfully",
+      data: order,
+      whatsappLink: waLink
     });
-    res.json({ success: true, order: fullOrder });
+
   } catch (err) {
     if (t) await t.rollback();
-    console.error("[createOrder] FATAL ERROR:", err);
-    res.status(500).json({ error: err.message });
+    console.error("[createOrder] Failure:", err);
+    res.status(500).json({ success: false, message: "Failed to create order.", error: err.message });
   }
 };
 
@@ -192,7 +231,8 @@ export const getOrders = async (req, res) => {
             model: Product,
             attributes: ['id', 'name', 'images', 'price', 'sku', 'description', 'stock']
           }
-        }
+        },
+        { model: PaymentProof }
       ],
       order: [['createdAt', 'DESC']],
     });
@@ -209,10 +249,10 @@ export const getOrders = async (req, res) => {
       }, null, 2));
     }
 
-    return res.json({ success: true, orders });
+    return res.json({ success: true, data: { orders } });
   } catch (err) {
     console.error("getOrders error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, message: "Failed to fetch orders", error: err.message });
   }
 };
 
@@ -232,18 +272,34 @@ export const getOrderById = async (req, res) => {
               model: Product,
               attributes: ['id', 'name', 'images', 'price', 'sku', 'description', 'stock']
             }
-          }
+          },
+          { model: PaymentProof }
         ]
       });
     }
 
-    // If not found by PK or if ID is a string, try orderNumber
+    // Fallback: search by order number if not found by PK
     if (!order) {
-      // Handle both #W-001 and W-001 formats
-      const targetOrderNumber = id.startsWith('#') ? id : `#${id}`;
+      console.log(`[getOrderById] Searching for ID: ${id}`);
+      const cleanId = id.replace('#', '');
+      const numericPart = id.replace(/[^0-9]/g, '');
+      
+      const searchConditions = [
+        { orderNumber: id },
+        { orderNumber: `#${id}` },
+        { orderNumber: cleanId },
+        { orderNumber: `#${cleanId}` }
+      ];
+
+      // Add fuzzy numeric matching if possible
+      if (numericPart && numericPart.length > 0) {
+        searchConditions.push({ orderNumber: { [Op.like]: `%${numericPart}` } });
+      }
+
+      console.log(`[getOrderById] Search conditions count: ${searchConditions.length}`);
 
       order = await Order.findOne({
-        where: { orderNumber: targetOrderNumber },
+        where: { [Op.or]: searchConditions },
         include: [
           { model: User, attributes: ['id', 'name', 'email'] },
           {
@@ -252,34 +308,49 @@ export const getOrderById = async (req, res) => {
               model: Product,
               attributes: ['id', 'name', 'images', 'price', 'sku', 'description', 'stock']
             }
-          }
-        ]
+          },
+          { model: PaymentProof }
+        ],
+        order: [['createdAt', 'DESC']] // Get newest if multiple match
       });
     }
 
-    if (!order) return res.status(404).json({ message: "Not found" });
+    if (!order) {
+      console.error(`[getOrderById] Order NOT FOUND for ID: ${id}`);
+      return res.status(404).json({ message: "Not found" });
+    }
 
     // Access Control
     // 1. Admin: Allow full access
     if (req.user && req.user.role === 'admin') {
-      return res.json(order);
+      return res.json({ success: true, data: { order } });
     }
 
     // 2. Owner (Logged in): Allow if userId matches
     if (req.user && order.userId === req.user.id) {
-      return res.json(order);
+      return res.json({ success: true, data: { order } });
     }
 
-    // 3. Guest/Public: Allow ONLY if accessed via unique orderNumber (acting as secret key)
-    // We disallow guessing numeric IDs (e.g. /order/1) for strangers
-    // id in req.params would be the orderNumber in this case
-    if (order.orderNumber === id) {
-      return res.json(order);
+    // 3. Guest/Public: Allow if accessed via orderNumber (acting as secret key)
+    // We allow fuzzy matching here too to match our lookup logic
+    const cleanOrderNumber = order.orderNumber.replace('#', '');
+    const cleanRequestId = id.replace('#', '');
+    
+    // Also try numeric normalization (e.g. 0009 -> 9)
+    const normOrder = order.orderNumber.replace(/[^0-9]/g, '').replace(/^0+/, '');
+    const normRequest = id.replace(/[^0-9]/g, '').replace(/^0+/, '');
+    
+    if (order.orderNumber === id || 
+        cleanOrderNumber === cleanRequestId || 
+        (normOrder === normRequest && normOrder.length > 0)) {
+       return res.json({ success: true, data: { order } });
     }
 
-    return res.status(403).json({ message: "Access denied" });
+    // If we reach here, it's either a numeric ID guess or a mismatch
+    console.warn(`[getOrderById] Access denied for ID: ${id}. Order found was: ${order.orderNumber}`);
+    return res.status(404).json({ success: false, message: "Order not found or access denied" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, message: "Error fetching order", error: err.message });
   }
 };
 
@@ -308,7 +379,14 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     // Feature: Reduce stock ONLY when order is confirmed
-    const { status, force } = req.body;
+    const { status, message } = req.body;
+    
+    // Validate order status
+    const validStatuses = ["pending_payment", "under_review", "confirmed", "processing", "shipped", "delivered", "cancelled", "returned"];
+    if (!validStatuses.includes(status)) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: "Invalid order status" });
+    }
 
     if (status === 'confirmed' && order.status !== 'confirmed') {
       // Iterate through items and reduce stock
@@ -317,14 +395,13 @@ export const updateOrderStatus = async (req, res) => {
         if (product) {
           const hasEnough = product.stock >= item.quantity;
 
-          if (hasEnough || force) {
-            // If forcing, we don't go below 0 because of model validation
-            const newStock = Math.max(0, product.stock - item.quantity);
-            product.stock = newStock;
+          if (hasEnough) {
+            product.stock = Math.max(0, product.stock - item.quantity);
             await product.save({ transaction: t });
           } else {
             await t.rollback();
             return res.status(400).json({
+              success: false,
               message: `Cannot confirm: Insufficient stock for ${product.name}`,
               code: 'INSUFFICIENT_STOCK',
               productId: product.id,
@@ -336,8 +413,8 @@ export const updateOrderStatus = async (req, res) => {
       }
     }
 
-    // Feature: Restore stock if order is cancelled (optional, but good practice)
-    if (status === 'cancelled' && order.status === 'confirmed') {
+    // Restore stock if order is cancelled from a confirmed state
+    if (status === 'cancelled' && (order.status === 'confirmed' || order.status === 'processing' || order.status === 'shipped')) {
       for (const item of order.OrderItems) {
         const product = await Product.findByPk(item.productId, { transaction: t, lock: t.LOCK.UPDATE });
         if (product) {
@@ -353,19 +430,20 @@ export const updateOrderStatus = async (req, res) => {
     const history = order.statusHistory || [];
     history.push({
       status,
-      message: req.body.message || `Order status updated to ${status}`,
+      message: message || `Order status updated to ${status.replace('_', ' ').toUpperCase()}`,
       timestamp: new Date(),
       updatedBy: req.user?.name || 'Admin'
     });
     order.statusHistory = history;
+    order.changed('statusHistory', true);
 
     await order.save({ transaction: t });
     await t.commit();
 
-    res.json(order);
+    res.json({ success: true, message: `Status updated to ${status}`, data: { order } });
   } catch (err) {
-    await t.rollback();
-    res.status(500).json({ error: err.message });
+    if (t) await t.rollback();
+    res.status(500).json({ success: false, message: "Failed to update status", error: err.message });
   }
 };
 
@@ -443,7 +521,7 @@ export const cancelOrderItem = async (req, res) => {
       ]
     });
 
-    res.json({ success: true, order: updatedOrder });
+    res.json({ success: true, data: { order: updatedOrder } });
   } catch (err) {
     if (t) await t.rollback();
     res.status(500).json({ error: err.message });
@@ -458,12 +536,24 @@ export const updatePaymentStatus = async (req, res) => {
     if (!order) return res.status(404).json({ message: "Not found" });
 
     const { status } = req.body;
-    order.paymentStatus = status;
-    await order.save(); // Sequelize ENUM validation will handle invalid values
+    
+    // User requested: pending -> verified -> rejected
+    const validPaymentStatuses = ["pending", "verified", "paid", "failed", "refunded", "rejected"];
+    if (!validPaymentStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: "Invalid payment status" });
+    }
 
-    res.json(order);
+    order.paymentStatus = status;
+    
+    // Automatically confirm order if payment is verified
+    if (status === 'verified' && order.status === 'pending') {
+      order.status = 'confirmed';
+    }
+
+    await order.save();
+    res.json({ success: true, data: { order } });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, message: "Failed to update payment status", error: err.message });
   }
 };
 
@@ -478,54 +568,49 @@ export const getMonthlyStats = async (req, res) => {
       const days = range === '7days' ? 7 : 30;
       query = `
         SELECT 
-          to_char(date_trunc('day', "createdAt"), 'Mon DD') as date,
-          SUM(total) as sales,
+          to_char(date_trunc('day', "created_at"), 'Mon DD') as date,
+          SUM(total_amount) as sales,
           COUNT(id) as orders
         FROM orders
-        WHERE "createdAt" >= CURRENT_DATE - INTERVAL '${days} days'
-        GROUP BY date_trunc('day', "createdAt")
-        ORDER BY date_trunc('day', "createdAt") ASC
+        WHERE "created_at" >= CURRENT_DATE - INTERVAL '${days} days'
+        GROUP BY date_trunc('day', "created_at")
+        ORDER BY date_trunc('day', "created_at") ASC
       `;
     } else {
       // Default to Year (Monthly view)
       query = `
         SELECT 
-          to_char(date_trunc('month', "createdAt"), 'Mon') as month,
-          SUM(total) as sales,
+          to_char(date_trunc('month', "created_at"), 'Mon') as month,
+          SUM(total_amount) as sales,
           COUNT(id) as orders
         FROM orders
-        WHERE "createdAt" >= date_trunc('year', CURRENT_DATE) 
-        GROUP BY date_trunc('month', "createdAt")
-        ORDER BY date_trunc('month', "createdAt") ASC
+        WHERE "created_at" >= date_trunc('year', CURRENT_DATE) 
+        GROUP BY date_trunc('month', "created_at")
+        ORDER BY date_trunc('month', "created_at") ASC
       `;
     }
 
     const stats = await sequelize.query(query, { type: sequelize.QueryTypes.SELECT });
     console.log(`[getMonthlyStats] Range: ${range}, Stats count: ${stats.length}`);
-    if (stats.length === 0) console.log("[getMonthlyStats] Stats are empty!");
-
-    res.json(stats);
+    
+    res.json({ success: true, data: { stats } });
   } catch (err) {
     console.error("Stats error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, message: "Failed to fetch stats", error: err.message });
   }
 };
 
 export const trackOrder = async (req, res) => {
   try {
-    const { id } = req.params; // Can be orderNumber or phone (if we implement phone search)
+    const { id } = req.params;
     
-    // Clean the ID (handle # if present)
-    const targetOrderNumber = id.startsWith('#') ? id : `#${id}`;
-
-    // Extract numeric part to handle formats like w-004, #004, 004, etc.
     const cleanNumeric = id.replace(/^#?\s*W?-?\s*/i, '');
-    
     const variations = [
-      id,                  // Exact match
-      targetOrderNumber,   // #id
-      `#W-${cleanNumeric}`, // Standard format #W-004
-      cleanNumeric,        // Just the numbers 004
+      id,
+      `#${id}`,
+      `#W-${cleanNumeric}`,
+      cleanNumeric,
+      `%${cleanNumeric}` // Ends with numeric part
     ];
 
     const order = await Order.findOne({
@@ -548,17 +633,18 @@ export const trackOrder = async (req, res) => {
     if (!order) {
       return res.status(404).json({ 
         success: false, 
-        message: "Order not found. Please check your Order ID and try again." 
+        message: "Order not found. Please check your Order ID." 
       });
     }
 
-    // Mask sensitive info for public tracking
     const maskedOrder = {
       orderNumber: order.orderNumber,
       status: order.status,
       statusHistory: order.statusHistory || [],
       createdAt: order.createdAt,
       total: order.total,
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod,
       items: order.OrderItems.map(item => ({
         name: item.Product?.name,
         image: item.Product?.images?.[0] || item.Product?.image,
@@ -567,16 +653,70 @@ export const trackOrder = async (req, res) => {
         size: item.selectedSize,
         color: item.selectedColor
       })),
-      // Masking name and email
       customerName: typeof order.shippingAddress === 'string' 
         ? JSON.parse(order.shippingAddress).name.replace(/^(.).+(.)$/, "$1***$2") 
         : (order.shippingAddress?.name || "Customer").replace(/^(.).+(.)$/, "$1***$2"),
       estimatedDelivery: "3-5 Business Days"
     };
 
-    res.json({ success: true, order: maskedOrder });
+    res.json({ success: true, data: { order: maskedOrder } });
   } catch (err) {
     console.error("trackOrder error:", err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, message: "Failed to track order", error: err.message });
+  }
+};
+
+export const uploadPaymentProof = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findByPk(id);
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Please upload a screenshot" });
+    }
+
+    // Save screenshot path - handle Cloudinary URL if present
+    const screenshotUrl = req.file.path || `/uploads/${req.file.filename}`;
+    order.paymentProofImage = screenshotUrl;
+    order.paymentStatus = 'pending'; // Reset to pending for review
+    
+    // Append to history
+    const history = order.statusHistory || [];
+    history.push({
+      status: order.status,
+      message: `Payment proof uploaded via website. Transaction ID: ${req.body.transactionId || 'Not provided'}`,
+      timestamp: new Date()
+    });
+    order.statusHistory = history;
+
+    if (req.body.transactionId) {
+      order.paymentInfo = {
+        ...order.paymentInfo,
+        transactionId: req.body.transactionId
+      };
+    }
+
+    await order.save();
+
+    // Notify Admin
+    try {
+      await Notification.create({
+        type: 'payment_received',
+        title: 'Payment Proof Uploaded',
+        message: `Payment proof uploaded for Order ${order.orderNumber}. Please verify.`,
+        link: `/admin/orders/${order.id}`
+      });
+    } catch (nErr) {
+      console.error("Failed to create notification:", nErr);
+    }
+
+    res.json({ success: true, message: "Proof uploaded successfully", data: { order } });
+  } catch (err) {
+    console.error("uploadPaymentProof error:", err);
+    res.status(500).json({ success: false, message: "Failed to upload proof", error: err.message });
   }
 };

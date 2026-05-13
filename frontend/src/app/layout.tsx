@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Playfair_Display, Outfit } from "next/font/google";
 import "../styles/globals.css";
 import Header from "@/src/components/layout/Header";
@@ -44,7 +45,9 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased bg-cream text-charcoal" suppressHydrationWarning>
         <ToastProvider>
-          <Header />
+          <Suspense fallback={<div className="h-20" />}>
+            <Header />
+          </Suspense>
           <main className="min-h-screen">{children}</main>
           <Footer />
           <ChatWidget />

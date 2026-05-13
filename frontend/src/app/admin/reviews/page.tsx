@@ -40,16 +40,11 @@ export default function AdminReviewsPage() {
     const fetchReviews = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/admin/reviews?status=${filterStatus === 'all' ? '' : filterStatus}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-                setReviews(data.reviews);
-            }
+            const data = await api.getAdminReviews(filterStatus === 'all' ? undefined : filterStatus);
+            setReviews(data || []);
         } catch (error) {
             console.error("Failed to fetch reviews", error);
+            showToast('Failed to fetch reviews', 'error');
         } finally {
             setLoading(false);
         }
@@ -61,7 +56,8 @@ export default function AdminReviewsPage() {
 
     const handleToggleStatus = async (id: number) => {
         try {
-            const updatedReview = await api.toggleReviewStatus(id.toString());
+            const response = await api.toggleReviewStatus(id.toString());
+            const updatedReview = response.review || response;
             setReviews(reviews.map(r => r.id === id ? { ...r, isApproved: updatedReview.isApproved } : r));
             showToast(updatedReview.isApproved ? 'Review approved' : 'Review hidden', 'success');
         } catch (error) {
@@ -166,7 +162,7 @@ export default function AdminReviewsPage() {
                                                 <div className="w-10 h-10 relative rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                                                     {review.product?.images?.[0] ? (
                                                         <Image
-                                                            src={review.product.images[0]}
+                                                            src={api.getImageUrl(review.product.images[0])}
                                                             alt={review.product.name}
                                                             fill
                                                             className="object-cover"

@@ -28,7 +28,7 @@ export const createCategory = async (req, res) => {
       status,
       parentId: parentId ? parseInt(parentId) : null
     });
-    res.status(201).json({ message: "Category created successfully", category });
+    res.status(201).json({ success: true, message: "Category created successfully", data: { category } });
   } catch (error) {
     console.error("Create category error:", error.message);
     res.status(500).json({ message: "Server Error" });
@@ -47,7 +47,7 @@ export const getAllCategories = async (req, res) => {
       }]
     });
     console.log(`Found ${categories.length} categories`);
-    res.status(200).json(categories);
+    res.status(200).json({ success: true, data: { categories } });
   } catch (error) {
     console.error("Get categories error:", error.message);
     res.status(500).json({ message: "Server Error" });
@@ -62,7 +62,7 @@ export const getCategoryById = async (req, res) => {
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
-    res.status(200).json(category);
+    res.status(200).json({ success: true, data: { category } });
   } catch (error) {
     console.error("Get category by ID error:", error.message);
     res.status(500).json({ message: "Server Error" });
@@ -97,7 +97,7 @@ export const updateCategory = async (req, res) => {
 
     await category.save();
 
-    res.status(200).json({ message: "Category updated successfully", category });
+    res.status(200).json({ success: true, message: "Category updated successfully", data: { category } });
   } catch (error) {
     console.error("Update category error:", error.message);
     res.status(500).json({ message: "Server Error" });

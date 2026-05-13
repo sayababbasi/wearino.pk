@@ -15,7 +15,7 @@ const OrderItem = sequelize.define("OrderItem", {
   selectedSize: { type: DataTypes.STRING, allowNull: true }, // Size variant (XS, S, M, L, XL etc.)
   selectedColor: { type: DataTypes.STRING, allowNull: true }, // Color variant
   status: {
-    type: DataTypes.ENUM("active", "cancelled"),
+    type: DataTypes.STRING, // "active", "cancelled"
     defaultValue: "active",
   },
 }, {

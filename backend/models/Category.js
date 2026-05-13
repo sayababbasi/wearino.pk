@@ -68,7 +68,7 @@ const Category = sequelize.define("Category", {
         allowNull: true,
     },
     status: {
-        type: DataTypes.ENUM('active', 'inactive'),
+        type: DataTypes.STRING, // 'active', 'inactive'
         defaultValue: 'active',
     },
     parentId: {

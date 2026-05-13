@@ -7,7 +7,8 @@ import { useWishlistStore, useCartStore } from '@/src/lib/store';
 import { useToast } from '@/src/components/common/Toast';
 import { useState } from 'react';
 import CartDrawer from '@/src/components/cart/CartDrawer';
-import { api } from '@/src/lib/api';
+import { api, getImageUrl } from '@/src/lib/api';
+import { formatPrice } from '@/src/lib/utils';
 import type { Product } from '@/src/types';
 
 interface ProductCardProps {
@@ -70,7 +71,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   const productImage = product.images?.[0] || product.image;
-  const imageUrl = productImage ? api.getImageUrl(productImage) : 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800';
+  const imageUrl = productImage ? getImageUrl(productImage) : 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=800';
 
   return (
     <>

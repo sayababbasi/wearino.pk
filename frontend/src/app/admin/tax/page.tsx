@@ -30,9 +30,8 @@ export default function TaxSettingsPage() {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await api.getSettings();
-      const data = response.settings || [];
-      setSettings(data);
+      const data = await api.getSettings();
+      setSettings(data || []);
       
       const tax = data.find((s: any) => s.key === 'global_tax_percent');
       if (tax) setTaxPercent(tax.value);

@@ -37,7 +37,12 @@ import "./models/Order.js";
 import "./models/Coupon.js";
 import "./models/Review.js";
 import "./models/ProductVariant.js";
+import "./models/ReturnRequest.js";
 import "./models/Message.js";
+import "./models/Setting.js";
+import "./models/DeliveryZone.js";
+import "./models/PaymentMethod.js";
+import "./models/PaymentProof.js";
 
 import http from 'http';
 import { Server } from 'socket.io';
@@ -75,11 +80,13 @@ app.use(morgan("dev"));
 app.get("/api/health", (req, res) => {
   res.json({ success: true, status: "UP", timestamp: new Date() });
 });
-app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
 
 
 import contentRoutes from "./routes/contentRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import returnRoutes from "./routes/returnRoutes.js";
+import configRoutes from "./routes/configRoutes.js";
 
 // Routes
 app.use("/api/content", contentRoutes);
@@ -97,6 +104,8 @@ app.use("/api/chat", chatRoutes); // Keep bot chat for now
 app.use("/api/messages", messageRoutes); // New Support Chat
 app.use("/api", couponRoutes);
 app.use("/api", reviewRoutes);
+app.use("/api/returns", returnRoutes);
+app.use("/api/config", configRoutes);
 app.get("/", (req, res) => {
   res.send("API is running...");
 });

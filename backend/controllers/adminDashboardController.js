@@ -15,21 +15,20 @@ export const getAdminStats = async (req, res) => {
     const totalInquiries = await Inquiry.count();
     const wishlistCount = await Wishlist.count();
 
-
-
     res.json({
-      totalUsers,
-      totalProducts,
-      totalCategories,
-      totalInquiries,
-      wishlistCount,
-
+      success: true,
+      data: {
+        totalUsers,
+        totalProducts,
+        totalCategories,
+        totalInquiries,
+        wishlistCount,
+      }
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
 
 // ----------- MONTHLY USERS CHART -----------
 export const getMonthlyUserStats = async (req, res) => {
@@ -43,12 +42,11 @@ export const getMonthlyUserStats = async (req, res) => {
       order: [["month", "ASC"]],
     });
 
-    res.json(data);
+    res.json({ success: true, data });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
 
 // ----------- MONTHLY PRODUCTS CHART -----------
 export const getMonthlyProductStats = async (req, res) => {
@@ -62,12 +60,11 @@ export const getMonthlyProductStats = async (req, res) => {
       order: [["month", "ASC"]],
     });
 
-    res.json(data);
+    res.json({ success: true, data });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
 
 // ----------- LATEST USERS -----------
 export const getLatestUsers = async (req, res) => {
@@ -78,12 +75,11 @@ export const getLatestUsers = async (req, res) => {
       attributes: ["id", "name", "email", "createdAt"],
     });
 
-    res.json(users);
+    res.json({ success: true, data: users });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
 
 // ----------- LATEST INQUIRIES -----------
 export const getLatestInquiries = async (req, res) => {
@@ -97,12 +93,11 @@ export const getLatestInquiries = async (req, res) => {
       ],
     });
 
-    res.json(inquiries);
+    res.json({ success: true, data: inquiries });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
 
 // ----------- LOW STOCK PRODUCTS -----------
 export const getLowStockProducts = async (req, res) => {
@@ -113,12 +108,11 @@ export const getLowStockProducts = async (req, res) => {
       attributes: ["id", "name", "stock"],
     });
 
-    res.json(products);
+    res.json({ success: true, data: products });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
-
 
 // ----------- MOST WISHLISTED PRODUCTS -----------
 export const getMostWishlisted = async (req, res) => {
@@ -139,8 +133,8 @@ export const getMostWishlisted = async (req, res) => {
       limit: 5,
     });
 
-    res.json(data);
+    res.json({ success: true, data });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };

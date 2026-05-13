@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { X, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { useCartStore } from '@/src/lib/store';
 import { formatPrice } from '@/src/lib/utils';
-import { api } from '@/src/lib/api';
+import { api, getImageUrl } from '@/src/lib/api';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -105,7 +105,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                         className="shrink-0 w-24 aspect-[3/4] bg-dark-50 overflow-hidden"
                       >
                         <img
-                          src={api.getImageUrl(item.image || (item.images && item.images[0]))}
+                          src={getImageUrl(item.image || (item.images && item.images[0]))}
                           alt={item.name}
                           className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                         />

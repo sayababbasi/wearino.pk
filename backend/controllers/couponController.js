@@ -252,11 +252,13 @@ export const validateCoupon = async (req, res) => {
 
         res.json({
             success: true,
-            coupon: {
-                code: coupon.code,
-                discountType: coupon.discountType,
-                discountValue: coupon.discountValue,
-                discountAmount: parseFloat((Number(discountAmount) || 0).toFixed(2))
+            data: {
+                coupon: {
+                    code: coupon.code,
+                    discountType: coupon.discountType,
+                    discountValue: coupon.discountValue,
+                    discountAmount: parseFloat((Number(discountAmount) || 0).toFixed(2))
+                }
             }
         });
     } catch (error) {

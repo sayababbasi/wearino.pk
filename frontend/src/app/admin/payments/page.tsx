@@ -44,8 +44,8 @@ export default function PaymentMethodsPage() {
   const fetchMethods = async () => {
     try {
       setLoading(true);
-      const response = await api.getPaymentMethods();
-      setMethods(response.methods || []);
+      const data = await api.getPaymentMethods();
+      setMethods(data || []);
     } catch (error) {
       showToast('Failed to fetch payment methods', 'error');
     } finally {

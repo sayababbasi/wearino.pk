@@ -77,7 +77,7 @@ export default function OrderDetailsPage() {
         }
     };
 
-    const handlePaymentStatusChange = async (newStatus: 'pending' | 'paid' | 'failed' | 'refunded') => {
+    const handlePaymentStatusChange = async (newStatus: 'pending' | 'paid' | 'verified' | 'failed' | 'rejected' | 'refunded') => {
         if (!orderId) return;
 
         try {
@@ -187,6 +187,24 @@ export default function OrderDetailsPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* New: Prominent Verify Button in Header */}
+                    {order.paymentStatus === 'pending' && order.PaymentProofs?.some((p: any) => p.status === 'pending') && (
+                        <button
+                            onClick={() => {
+                                const proofElement = document.getElementById('verification-log');
+                                if (proofElement) {
+                                    proofElement.scrollIntoView({ behavior: 'smooth' });
+                                    proofElement.classList.add('ring-4', 'ring-blue-500/20');
+                                    setTimeout(() => proofElement.classList.remove('ring-4', 'ring-blue-500/20'), 2000);
+                                }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-all animate-bounce-subtle"
+                        >
+                            <ShieldCheck size={18} />
+                            <span className="font-bold text-sm uppercase tracking-wider">Verify Payment</span>
+                        </button>
+                    )}
+
                     <div className="relative">
                         <button
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -397,7 +415,7 @@ export default function OrderDetailsPage() {
                     
                     {/* Payment Verification Proofs */}
                     {order.PaymentProofs && order.PaymentProofs.length > 0 && (
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 overflow-hidden">
+                        <div id="verification-log" className="bg-white rounded-lg shadow-sm border-2 border-blue-100 p-6 overflow-hidden transition-all">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="font-semibold flex items-center gap-2 text-dark-800">
                                     <ShieldCheck size={20} className="text-blue-600" />
@@ -462,7 +480,6 @@ export default function OrderDetailsPage() {
                                                             try {
                                                                 setUpdating(true);
                                                                 await api.verifyPaymentProof(proof.id, { status: 'approved' });
-                                                                await api.updateOrderPaymentStatus(orderId, 'paid');
                                                                 const data = await api.getOrder(orderId);
                                                                 setOrder(data);
                                                                 showToast('Payment verified', 'success');
@@ -604,7 +621,7 @@ export default function OrderDetailsPage() {
                                             onClick={() => setIsPaymentMenuOpen(false)}
                                         ></div>
                                         <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-10">
-                                            {['pending', 'paid', 'failed', 'refunded'].map((status) => (
+                                            {['pending', 'verified', 'paid', 'rejected', 'failed', 'refunded'].map((status) => (
                                                 <button
                                                     key={status}
                                                     onClick={() => handlePaymentStatusChange(status as any)}
@@ -628,8 +645,8 @@ export default function OrderDetailsPage() {
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Status</span>
-                                <span className={`font-medium capitalize ${(order.paymentStatus || 'pending') === 'paid' ? 'text-green-600' :
-                                    (order.paymentStatus || 'pending') === 'failed' ? 'text-red-600' : 'text-yellow-600'
+                                <span className={`font-medium capitalize ${['paid', 'verified'].includes(order.paymentStatus) ? 'text-green-600' :
+                                    ['failed', 'rejected'].includes(order.paymentStatus || 'pending') ? 'text-red-600' : 'text-yellow-600'
                                     }`}>
                                     {order.paymentStatus || 'pending'}
                                 </span>

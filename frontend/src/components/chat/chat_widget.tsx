@@ -4,8 +4,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from "next/navigation";
 import { io, Socket } from 'socket.io-client';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-const SOCKET_URL = API_URL.replace('/api', '');
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001').replace(/\/api$/, '');
+const SOCKET_URL = API_URL;
 
 interface Message {
     id: number;

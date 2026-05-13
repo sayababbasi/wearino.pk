@@ -21,7 +21,7 @@ import ProductCard from '@/src/components/product/ProductCard';
 import { useCartStore, useWishlistStore } from '@/src/lib/store';
 import { useToast } from '@/src/components/common/Toast';
 import CartDrawer from '@/src/components/cart/CartDrawer';
-import { api } from '@/src/lib/api';
+import { api, getImageUrl } from '@/src/lib/api';
 
 export default function ProductDetailClient() {
   const params = useParams();
@@ -161,7 +161,7 @@ export default function ProductDetailClient() {
                     selectedImage === index ? 'border-black ring-1 ring-black' : 'border-gray-100 hover:border-gray-300'
                   }`}
                 >
-                  <img src={api.getImageUrl(image)} alt="" className="w-full h-full object-cover" />
+                  <img src={getImageUrl(image)} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -170,7 +170,7 @@ export default function ProductDetailClient() {
             <div className="md:col-span-10">
               <div className="aspect-[4/5] bg-gray-50 rounded-xl overflow-hidden relative group border border-gray-100">
                 <img
-                  src={api.getImageUrl(product.images?.[selectedImage] || product.image)}
+                  src={getImageUrl(product.images?.[selectedImage] || product.image)}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />
@@ -191,7 +191,7 @@ export default function ProductDetailClient() {
                       selectedImage === index ? 'border-black' : 'border-transparent'
                     }`}
                   >
-                    <img src={api.getImageUrl(image)} alt="" className="w-full h-full object-cover" />
+                    <img src={getImageUrl(image)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

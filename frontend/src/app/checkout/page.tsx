@@ -6,7 +6,7 @@ import { CreditCard, Lock, MapPin, User, Check, ChevronRight, Tag, X } from 'luc
 import { useCartStore, useOrderStore } from '@/src/lib/store';
 import { useToast } from '@/src/components/common/Toast';
 import { formatPrice } from '@/src/lib/utils';
-import { apiClient, api } from '@/src/lib/api';
+import { apiClient, api, getImageUrl } from '@/src/lib/api';
 import Link from 'next/link';
 
 const CTA_BUTTON_CLASS =
@@ -62,9 +62,11 @@ export default function CheckoutPage() {
           api.getSettings()
         ]) as [any, any, any];
         
-        setDeliveryZones(zonesRes.zones || []);
-        setPaymentMethods(methodsRes.methods?.filter((m: any) => m.isActive) || []);
-        const taxSetting = settingsRes.settings?.find((s: any) => s.key === 'global_tax_percent');
+        setDeliveryZones(Array.isArray(zonesRes) ? zonesRes : (zonesRes.zones || []));
+        const methods = Array.isArray(methodsRes) ? methodsRes : (methodsRes.methods || []);
+        setPaymentMethods(methods.filter((m: any) => m.isActive) || []);
+        const settings = Array.isArray(settingsRes) ? settingsRes : (settingsRes.settings || []);
+        const taxSetting = settings.find((s: any) => s.key === 'global_tax_percent');
         if (taxSetting) setGlobalTax(parseFloat(taxSetting.value));
       } catch (error) {
         console.error('Failed to load checkout config:', error);
@@ -87,19 +89,32 @@ export default function CheckoutPage() {
     }
     setShippingFee(fee);
 
-    // 2. Calculate Tax
-    let totalTax = 0;
-    items.forEach(item => {
-      const taxRate = (item as any).taxOverride !== undefined ? (item as any).taxOverride : globalTax;
-      totalTax += (item.price * item.quantity * taxRate) / 100;
-    });
+    // 2. Calculate Tax - Apply discount BEFORE tax as per user request
+    const discount = appliedCoupon?.discountAmount || 0;
+    const taxableAmount = Math.max(0, totalPrice - discount);
+    
+    // We'll use global tax for the entire taxable amount for simplicity, 
+    // unless there are specific item overrides (rare for this use case)
+    let totalTax = (taxableAmount * globalTax) / 100;
+    
+    // If we want to be precise with item overrides even with discounts:
+    if (items.some(item => (item as any).taxOverride !== undefined)) {
+      totalTax = 0;
+      const discountRatio = totalPrice > 0 ? (taxableAmount / totalPrice) : 0;
+      items.forEach(item => {
+        const taxRate = (item as any).taxOverride !== undefined ? (item as any).taxOverride : globalTax;
+        const itemTaxable = (item.price * item.quantity) * discountRatio;
+        totalTax += (itemTaxable * taxRate) / 100;
+      });
+    }
+    
     setTaxAmount(totalTax);
 
-  }, [formData.city, formData.paymentMethod, deliveryZones, paymentMethods, totalPrice, globalTax, items]);
+  }, [formData.city, formData.paymentMethod, deliveryZones, paymentMethods, totalPrice, globalTax, items, appliedCoupon]);
 
   const shipping = shippingFee;
   const tax = taxAmount;
-  const finalTotal = totalPrice + shipping + tax - discount;
+  const finalTotal = (totalPrice - discount) + shipping + tax;
 
   const generateOrderNumber = () => {
     return Math.random().toString(36).substring(2, 11).toUpperCase();
@@ -129,15 +144,17 @@ export default function CheckoutPage() {
 
     try {
       const productIds = items.map(item => item.product_id || (item as any).id);
-      const response = await api.post('/coupons/validate', {
+      const response = await apiClient.post<any>('/coupons/validate', {
         code: couponCode,
         cartTotal: totalPrice,
         productIds
       });
 
-      if (response.data.success) {
+      if (response.success && response.data) {
         setAppliedCoupon(response.data.coupon);
         showToast(`Coupon applied! You save ${formatPrice(response.data.coupon.discountAmount)}`, 'success');
+      } else {
+        setCouponError(response.message || 'Invalid coupon code');
       }
     } catch (error: any) {
       setCouponError(error.message || 'Invalid coupon code');
@@ -200,8 +217,10 @@ export default function CheckoutPage() {
         throw new Error(orderResponse.error || 'Failed to create order');
       }
 
-      const order = (orderResponse as any).data?.order || (orderResponse as any).order;
-      const orderNumber = order?.orderNumber || "PENDING";
+      // Handle successful order creation
+      // Standardize extraction based on backend response: { success: true, data: orderObject }
+      const order = (orderResponse as any).data || (orderResponse as any).order || orderResponse;
+      const orderNumber = order?.orderNumber || order?.order_number || "PENDING";
 
       // Prepare data for store/receipt
       const orderData = {
@@ -614,10 +633,10 @@ export default function CheckoutPage() {
                       : item.price;
 
                     return (
-                      <div key={item.product_id || (item as any).id} className="flex gap-4">
+                      <div key={`${item.product_id || (item as any).id}-${item.selectedSize || 'default'}-${item.selectedColor || 'default'}`} className="flex gap-4">
                         <div className="relative w-16 h-16 bg-dark-50 rounded overflow-hidden flex-shrink-0">
                           <img
-                            src={api.getImageUrl(item.image || item.images?.[0])}
+                            src={getImageUrl(item.image || item.images?.[0])}
                             alt={item.name}
                             className="w-full h-full object-cover"
                           />

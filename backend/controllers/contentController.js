@@ -45,7 +45,7 @@ export const getContent = async (req, res) => {
             order: [['order', 'ASC'], ['createdAt', 'DESC']],
         });
 
-        res.status(200).json({ success: true, content });
+        res.status(200).json({ success: true, data: { content } });
     } catch (error) {
         console.error("Error fetching content:", error);
         res.status(500).json({ message: "Internal Server Error" });
@@ -106,10 +106,10 @@ export const createContent = async (req, res) => {
                     attributes: ['id', 'name', 'price', 'images', 'description', 'stock']
                 }]
             });
-            return res.status(201).json({ success: true, content: contentWithProduct });
+            return res.status(201).json({ success: true, data: { content: contentWithProduct } });
         }
 
-        res.status(201).json({ success: true, content: newContent });
+        res.status(201).json({ success: true, data: { content: newContent } });
     } catch (error) {
         console.error("Error creating content:", error);
         res.status(500).json({
@@ -185,10 +185,10 @@ export const updateContent = async (req, res) => {
                     attributes: ['id', 'name', 'price', 'images', 'description', 'stock']
                 }]
             });
-            return res.status(200).json({ success: true, content: contentWithProduct });
+            return res.status(200).json({ success: true, data: { content: contentWithProduct } });
         }
 
-        res.status(200).json({ success: true, content });
+        res.status(200).json({ success: true, data: { content } });
     } catch (error) {
         console.error("Error updating content:", error);
         res.status(500).json({

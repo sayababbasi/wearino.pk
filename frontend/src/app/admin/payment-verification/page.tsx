@@ -38,8 +38,8 @@ export default function PaymentVerificationPage() {
   const fetchProofs = async () => {
     try {
       setLoading(true);
-      const response = await api.getPaymentProofs();
-      setProofs(response.proofs || []);
+      const data = await api.getPaymentProofs();
+      setProofs(data || []);
     } catch (error) {
       showToast('Failed to fetch payment proofs', 'error');
     } finally {

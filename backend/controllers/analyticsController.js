@@ -19,11 +19,12 @@ const calculateGrowth = async (Model, metric = 'count', dateField = 'createdAt')
     currentVal = await Model.count({ where: { [dateField]: { [Op.gte]: firstDayCurrentMonth } } });
     lastMonthVal = await Model.count({ where: { [dateField]: { [Op.gte]: firstDayLastMonth, [Op.lte]: lastDayLastMonth } } });
   } else if (metric === 'sum') {
-    // For revenue (total) or views
-    const currentSum = await Model.sum(dateField === 'views' ? 'views' : 'total', { where: { [dateField === 'views' ? 'updatedAt' : 'createdAt']: { [Op.gte]: firstDayCurrentMonth } } });
-    const lastMonthSum = await Model.sum(dateField === 'views' ? 'views' : 'total', { where: { [dateField === 'views' ? 'updatedAt' : 'createdAt']: { [Op.gte]: firstDayLastMonth, [Op.lte]: lastDayLastMonth } } });
-    currentVal = currentSum || 0;
-    lastMonthVal = lastMonthSum || 0;
+    // For revenue (total_amount) or views
+    const field = dateField === 'views' ? 'view' : 'total_amount';
+    const currentSum = await Model.sum(field, { where: { [dateField === 'views' ? 'updatedAt' : 'createdAt']: { [Op.gte]: firstDayCurrentMonth } } });
+    const lastMonthSum = await Model.sum(field, { where: { [dateField === 'views' ? 'updatedAt' : 'createdAt']: { [Op.gte]: firstDayLastMonth, [Op.lte]: lastDayLastMonth } } });
+    currentVal = parseFloat(currentSum) || 0;
+    lastMonthVal = parseFloat(lastMonthSum) || 0;
   }
 
   if (lastMonthVal === 0) return currentVal > 0 ? 100 : 0;
@@ -36,12 +37,12 @@ export const getTopViewedProducts = async (req, res) => {
     const products = await Product.findAll({
       order: [["view", "DESC"]],
       limit: 10,
-      attributes: ["id", "title", "price", "view", "createdAt"],
+      attributes: ["id", "name", "price", "view", "createdAt", "images"],
     });
 
-    res.json(products);
+    res.json({ success: true, data: products });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -52,8 +53,8 @@ export const getCounts = async (req, res) => {
     const inquiriesCount = await Inquiry.count();
     const totalViews = await Product.sum("view") || 0;
 
-    // Total Revenue (All orders)
-    const totalRevenue = await Order.sum('total') || 0;
+    // Total Revenue (All orders) - Using total_amount to avoid 'total' column error
+    const totalRevenue = await Order.sum('total_amount') || 0;
     const totalOrders = await Order.count(); // All orders
 
     // Calculate Growth
@@ -65,25 +66,28 @@ export const getCounts = async (req, res) => {
     const firstDayLast = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastDayLast = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    const currentRev = await Order.sum('total', { where: { createdAt: { [Op.gte]: firstDayCurrent } } }) || 0;
-    const lastRev = await Order.sum('total', { where: { createdAt: { [Op.gte]: firstDayLast, [Op.lte]: lastDayLast } } }) || 0;
-    const refinedRevenueGrowth = lastRev === 0 ? (currentRev > 0 ? 100 : 0) : Math.round(((currentRev - lastRev) / lastRev) * 100);
+    const currentRev = await Order.sum('total_amount', { where: { createdAt: { [Op.gte]: firstDayCurrent } } }) || 0;
+    const lastRev = await Order.sum('total_amount', { where: { createdAt: { [Op.gte]: firstDayLast, [Op.lte]: lastDayLast } } }) || 0;
+    const refinedRevenueGrowth = lastRev === 0 ? (currentRev > 0 ? 100 : 0) : Math.round(((parseFloat(currentRev) - parseFloat(lastRev)) / parseFloat(lastRev)) * 100);
 
     const inquiriesGrowth = await calculateGrowth(Inquiry);
     const usersGrowth = await calculateGrowth(User);
 
     res.json({
-      productsCount,
-      inquiriesCount,
-      totalViews,
-      totalRevenue,
-      totalOrders,
-      revenueGrowth: refinedRevenueGrowth,
-      inquiriesGrowth,
-      usersGrowth
+      success: true,
+      data: {
+        productsCount,
+        inquiriesCount,
+        totalViews,
+        totalRevenue: parseFloat(totalRevenue),
+        totalOrders,
+        revenueGrowth: refinedRevenueGrowth,
+        inquiriesGrowth,
+        usersGrowth
+      }
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -97,32 +101,32 @@ export const getRevenueAnalytics = async (req, res) => {
       const days = range === '7days' ? 7 : 30;
       query = `
         SELECT 
-          to_char(date_trunc('day', "createdAt"), 'Mon DD') as date,
-          SUM(total) as revenue,
+          to_char(date_trunc('day', "created_at"), 'Mon DD') as date,
+          SUM(total_amount) as revenue,
           COUNT(id) as orders
         FROM orders
-        WHERE "createdAt" >= CURRENT_DATE - INTERVAL '${days} days' 
-        GROUP BY date_trunc('day', "createdAt")
-        ORDER BY date_trunc('day', "createdAt") ASC
+        WHERE "created_at" >= CURRENT_DATE - INTERVAL '${days} days' 
+        GROUP BY date_trunc('day', "created_at")
+        ORDER BY date_trunc('day', "created_at") ASC
       `;
     } else {
       query = `
         SELECT 
-          to_char(date_trunc('month', "createdAt"), 'Mon') as date,
-          SUM(total) as revenue,
+          to_char(date_trunc('month', "created_at"), 'Mon') as date,
+          SUM(total_amount) as revenue,
           COUNT(id) as orders
         FROM orders
-        WHERE "createdAt" >= date_trunc('year', CURRENT_DATE)
-        GROUP BY date_trunc('month', "createdAt")
-        ORDER BY date_trunc('month', "createdAt") ASC
+        WHERE "created_at" >= date_trunc('year', CURRENT_DATE)
+        GROUP BY date_trunc('month', "created_at")
+        ORDER BY date_trunc('month', "created_at") ASC
       `;
     }
 
     const data = await sequelize.query(query, { type: sequelize.QueryTypes.SELECT });
-    res.json(data);
+    res.json({ success: true, data });
 
   } catch (err) {
     console.error("Revenue analytics error:", err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ success: false, message: err.message });
   }
 };

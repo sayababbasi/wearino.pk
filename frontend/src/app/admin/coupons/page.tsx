@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Plus, Edit, Trash2, Search, Calendar, TrendingUp, Tag } from 'lucide-react';
 import { api } from '@/src/lib/api';
 import { useToast } from '@/src/components/common/Toast';
@@ -39,15 +39,8 @@ export default function CouponsManagementPage() {
     const fetchCoupons = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/admin/coupons');
-            if (response.data) {
-                setCoupons(response.data.coupons || []);
-            } else {
-                setCoupons([]);
-                if (response.error) {
-                    console.error('Failed to fetch coupons:', response.error);
-                }
-            }
+            const data = await api.getCoupons();
+            setCoupons(data || []);
         } catch (error) {
             console.error('Failed to fetch coupons:', error);
         } finally {
@@ -73,10 +66,10 @@ export default function CouponsManagementPage() {
 
         try {
             if (modalMode === 'create') {
-                await api.post('/admin/coupons', data);
+                await api.createCoupon(data);
                 showToast('Coupon created successfully', 'success');
             } else if (currentEditId) {
-                await api.put(`/admin/coupons/${currentEditId}`, data);
+                await api.updateCoupon(currentEditId, data);
                 showToast('Coupon updated successfully', 'success');
             }
             setShowModal(false);
@@ -96,7 +89,7 @@ export default function CouponsManagementPage() {
         if (!confirmModal.couponId) return;
 
         try {
-            await api.delete(`/admin/coupons/${confirmModal.couponId}`);
+            await api.deleteCoupon(confirmModal.couponId);
             fetchCoupons();
             showToast('Coupon deleted successfully', 'success');
             setConfirmModal({ isOpen: false, couponId: null });
@@ -150,7 +143,7 @@ export default function CouponsManagementPage() {
         if (coupon.discountType === 'percentage') {
             return `${coupon.discountValue}% OFF`;
         }
-        return `$${coupon.discountValue} OFF`;
+        return `Rs ${coupon.discountValue} OFF`;
     };
 
     const isExpired = (expiryDate: string) => {
@@ -227,10 +220,10 @@ export default function CouponsManagementPage() {
                                     <td className="px-6 py-4">
                                         <div className="font-semibold text-green-600">{getDiscountDisplay(coupon)}</div>
                                         {coupon.minPurchase && (
-                                            <div className="text-xs text-gray-500 mt-1">Min: ${coupon.minPurchase}</div>
+                                            <div className="text-xs text-gray-500 mt-1">Min: Rs {coupon.minPurchase}</div>
                                         )}
                                         {coupon.maxDiscount && coupon.discountType === 'percentage' && (
-                                            <div className="text-xs text-gray-500">Max: ${coupon.maxDiscount}</div>
+                                            <div className="text-xs text-gray-500">Max: Rs {coupon.maxDiscount}</div>
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-sm">
@@ -336,7 +329,7 @@ export default function CouponsManagementPage() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-2 text-gray-700">
-                                        {formData.discountType === 'percentage' ? 'Percentage (%)' : 'Amount ($)'} *
+                                        {formData.discountType === 'percentage' ? 'Percentage (%)' : 'Amount (Rs)'} *
                                     </label>
                                     <input
                                         type="number"
@@ -354,7 +347,7 @@ export default function CouponsManagementPage() {
                             {/* Min Purchase & Max Discount */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-2 text-gray-700">Minimum Purchase ($)</label>
+                                    <label className="block text-sm font-medium mb-2 text-gray-700">Minimum Purchase (Rs)</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -367,7 +360,7 @@ export default function CouponsManagementPage() {
                                 </div>
                                 {formData.discountType === 'percentage' && (
                                     <div>
-                                        <label className="block text-sm font-medium mb-2 text-gray-700">Max Discount ($)</label>
+                                        <label className="block text-sm font-medium mb-2 text-gray-700">Max Discount (Rs)</label>
                                         <input
                                             type="number"
                                             min="0"

@@ -42,8 +42,8 @@ export default function DeliveryManagementPage() {
   const fetchZones = async () => {
     try {
       setLoading(true);
-      const response = await api.getDeliveryZones();
-      setZones(response.zones || []);
+      const data = await api.getDeliveryZones();
+      setZones(data || []);
     } catch (error) {
       showToast('Failed to fetch delivery zones', 'error');
     } finally {
