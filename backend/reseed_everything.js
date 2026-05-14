@@ -12,251 +12,150 @@ const categoriesData = [
   { name: "Luxury Accessories", description: "Watches, sunglasses, and more", image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80" },
   { name: "Footwear", description: "Step out in style with our premium shoes", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80" },
   { name: "Kids' Corner", description: "Cute and comfortable clothes for children", image: "https://images.unsplash.com/photo-1519704943920-1844582b7bac?w=800&q=80" },
-  { name: "Home & Lifestyle", description: "Decor and essentials for your living space", image: "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800&q=80" },
-  { name: "Trending Now", description: "The most popular styles this season", image: "https://images.unsplash.com/photo-1511556820780-d912e42b4980?w=800&q=80" }
+  { name: "Home & Lifestyle", description: "Decor and essentials for your living space", image: "https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800&q=80" }
 ];
 
 const productsData = [
-  // --- WOMEN'S COLLECTION ---
+  // --- FLASH SALE (Tag: 'sale') ---
   {
-    name: "Floral Summer Maxi Dress",
-    price: 3499,
-    description: "A beautiful, breathable floral dress perfect for summer outings and beach days.",
-    stock: 45,
-    images: ["https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800&q=80"],
-    tags: ["trending", "new"],
-    sizes: ["S", "M", "L", "XL"],
-    categoryName: "Women's Collection"
-  },
-  {
-    name: "Classic Silk Blouse",
-    price: 2800,
-    description: "Elegant silk blouse in pearl white, suitable for both office and evening wear.",
+    name: "Red Velvet Party Dress",
+    price: 4500,
+    discount: 25,
+    description: "Stunning red velvet dress for special occasions.",
     stock: 20,
-    images: ["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800&q=80"],
-    tags: ["premium"],
-    sizes: ["XS", "S", "M", "L"],
-    categoryName: "Women's Collection"
-  },
-  {
-    name: "High-Waist Designer Jeans",
-    price: 4200,
-    description: "Premium denim with a flattering high-waist fit and distressed detailing.",
-    stock: 30,
-    images: ["https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80"],
-    tags: ["trending"],
-    sizes: ["26", "28", "30", "32"],
-    categoryName: "Women's Collection"
-  },
-  {
-    name: "Velvet Evening Gown",
-    price: 7500,
-    description: "A luxurious deep red velvet gown designed for formal events and galas.",
-    stock: 10,
     images: ["https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800&q=80"],
-    tags: ["luxury", "new"],
+    tags: ["sale", "trending"],
     sizes: ["S", "M", "L"],
     categoryName: "Women's Collection"
   },
   {
-    name: "Oversized Cashmere Scarf",
-    price: 1500,
-    description: "Soft and warm cashmere scarf in neutral grey, perfect for winter layering.",
+    name: "Summer Linen Shirt",
+    price: 1800,
+    discount: 15,
+    description: "Lightweight linen shirt for hot summer days.",
     stock: 50,
-    images: ["https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=800&q=80"],
-    tags: ["winter", "essential"],
-    sizes: ["One Size"],
-    categoryName: "Women's Collection"
-  },
-
-  // --- MEN'S APPAREL ---
-  {
-    name: "Premium Cotton Oxford Shirt",
-    price: 2500,
-    description: "A versatile cotton shirt with a crisp finish and comfortable fit.",
-    stock: 50,
-    images: ["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&q=80"],
-    tags: ["essential", "trending"],
-    sizes: ["M", "L", "XL", "XXL"],
-    categoryName: "Men's Apparel"
-  },
-  {
-    name: "Urban Leather Jacket",
-    price: 8500,
-    description: "Genuine leather jacket with minimalist silver hardware for a rugged look.",
-    stock: 12,
-    images: ["https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=80"],
-    tags: ["winter", "luxury"],
+    images: ["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&q=80"],
+    tags: ["sale"],
     sizes: ["M", "L", "XL"],
     categoryName: "Men's Apparel"
   },
   {
-    name: "Slim Fit Cargo Pants",
-    price: 3200,
-    description: "Durable cotton cargo pants with multiple utility pockets and slim silhouette.",
-    stock: 25,
-    images: ["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&q=80"],
-    tags: ["new"],
-    sizes: ["30", "32", "34", "36"],
-    categoryName: "Men's Apparel"
+    name: "Glitter Sparkle Flats",
+    price: 2200,
+    discount: 30,
+    description: "Comfortable flats with a touch of sparkle.",
+    stock: 35,
+    images: ["https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800&q=80"],
+    tags: ["sale", "kids"],
+    sizes: ["28", "30", "32"],
+    categoryName: "Kids' Corner"
   },
   {
-    name: "Graphite Wool Blazer",
-    price: 9800,
-    description: "Tailored wool blazer in deep graphite, a must-have for professional meetings.",
-    stock: 8,
-    images: ["https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80"],
-    tags: ["professional", "luxury"],
-    sizes: ["48", "50", "52", "54"],
-    categoryName: "Men's Apparel"
+    name: "Crystal Scented Candle",
+    price: 1200,
+    discount: 20,
+    description: "Beautifully scented candle with hidden crystals.",
+    stock: 100,
+    images: ["https://images.unsplash.com/photo-1602874801007-bd458bb1b8b6?w=800&q=80"],
+    tags: ["sale"],
+    sizes: ["One Size"],
+    categoryName: "Home & Lifestyle"
   },
+
+  // --- NEW ARRIVALS (Tag: 'new_arrivals') ---
   {
-    name: "Graphic Streetwear Hoodie",
-    price: 2900,
-    description: "Comfortable fleece hoodie with a bold street-art inspired graphic on the back.",
+    name: "Modern Art Print Tee",
+    price: 1500,
+    description: "Heavyweight cotton tee with a unique modern art print.",
     stock: 40,
-    images: ["https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&q=80"],
-    tags: ["trending", "casual"],
+    images: ["https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&q=80"],
+    tags: ["new_arrivals"],
     sizes: ["S", "M", "L", "XL"],
     categoryName: "Men's Apparel"
   },
-
-  // --- FOOTWEAR ---
   {
-    name: "Street Style Sneakers",
-    price: 5500,
-    description: "Modern, lightweight sneakers with breathable mesh and cushioned soles.",
-    stock: 40,
-    images: ["https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80"],
-    tags: ["trending", "new"],
-    sizes: ["40", "41", "42", "43", "44"],
-    categoryName: "Footwear"
-  },
-  {
-    name: "Classic Chelsea Boots",
-    price: 7200,
-    description: "Suede Chelsea boots in tan, featuring a sleek design and comfortable elastic side panels.",
-    stock: 18,
-    images: ["https://images.unsplash.com/photo-1638247025967-b4e38f787b76?w=800&q=80"],
-    tags: ["winter", "premium"],
-    sizes: ["41", "42", "43", "44"],
-    categoryName: "Footwear"
-  },
-  {
-    name: "Handcrafted Leather Loafers",
-    price: 6500,
-    description: "Timeless leather loafers with a polished finish, perfect for formal and casual wear.",
+    name: "Silk Emerald Slip Dress",
+    price: 5800,
+    description: "Pure silk slip dress in a vibrant emerald green.",
     stock: 15,
-    images: ["https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=800&q=80"],
-    tags: ["premium", "classic"],
+    images: ["https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80"],
+    tags: ["new_arrivals", "trending"],
+    sizes: ["S", "M"],
+    categoryName: "Women's Collection"
+  },
+  {
+    name: "Tech-Mesh Sport Shoes",
+    price: 7200,
+    description: "Advanced running shoes with breathable tech-mesh.",
+    stock: 25,
+    images: ["https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=800&q=80"],
+    tags: ["new_arrivals"],
     sizes: ["40", "41", "42", "43"],
     categoryName: "Footwear"
   },
+
+  // --- TRENDING (Tag: 'trending') ---
   {
-    name: "Minimalist White Trainers",
-    price: 4200,
-    description: "Clean and simple white trainers that pair perfectly with any outfit.",
-    stock: 25,
+    name: "Classic Leather Biker Jacket",
+    price: 9500,
+    description: "Authentic leather biker jacket with silver hardware.",
+    stock: 10,
+    images: ["https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=80"],
+    tags: ["trending", "luxury"],
+    sizes: ["M", "L", "XL"],
+    categoryName: "Men's Apparel"
+  },
+  {
+    name: "Gold Pendant Necklace",
+    price: 3200,
+    description: "Elegant 18k gold plated pendant necklace.",
+    stock: 45,
+    images: ["https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&q=80"],
+    tags: ["trending"],
+    sizes: ["One Size"],
+    categoryName: "Luxury Accessories"
+  },
+  {
+    name: "Boho Chic Tunic",
+    price: 2400,
+    description: "Embroidered cotton tunic for a relaxed bohemian look.",
+    stock: 30,
+    images: ["https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&q=80"],
+    tags: ["trending"],
+    sizes: ["S", "M", "L"],
+    categoryName: "Women's Collection"
+  },
+
+  // --- REGULAR PRODUCTS ---
+  {
+    name: "Classic White Sneakers",
+    price: 3800,
+    description: "Clean, minimalist white sneakers for everyday wear.",
+    stock: 60,
     images: ["https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800&q=80"],
     tags: ["essential"],
     sizes: ["38", "39", "40", "41", "42"],
     categoryName: "Footwear"
   },
-
-  // --- KIDS' CORNER ---
   {
-    name: "Cotton Dinosaur PJs",
-    price: 1500,
-    description: "Soft organic cotton pajamas with a fun dinosaur print for a cozy night's sleep.",
-    stock: 50,
-    images: ["https://images.unsplash.com/photo-1519704943920-1844582b7bac?w=800&q=80"],
-    tags: ["new", "kids"],
-    sizes: ["2Y", "4Y", "6Y", "8Y"],
-    categoryName: "Kids' Corner"
-  },
-  {
-    name: "Little Explorer Denim Jacket",
-    price: 2400,
-    description: "Durable and stylish denim jacket for kids, built for adventure.",
+    name: "Dinosaur Adventure Backpack",
+    price: 2800,
+    description: "Fun and functional backpack for little explorers.",
     stock: 20,
-    images: ["https://images.unsplash.com/photo-1519457431-757104681f85?w=800&q=80"],
-    tags: ["kids", "trending"],
-    sizes: ["4Y", "6Y", "8Y", "10Y"],
+    images: ["https://images.unsplash.com/photo-1519704943920-1844582b7bac?w=800&q=80"],
+    tags: ["kids"],
+    sizes: ["One Size"],
     categoryName: "Kids' Corner"
   },
-
-  // --- HOME & LIFESTYLE ---
   {
-    name: "Minimalist Ceramic Vase",
-    price: 1800,
-    description: "A sleek, matte white ceramic vase that adds a touch of elegance to any room.",
-    stock: 30,
+    name: "Marble Top Coffee Table",
+    price: 15500,
+    description: "Modern coffee table with a real marble top and gold legs.",
+    stock: 5,
     images: ["https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=800&q=80"],
-    tags: ["decor", "new"],
-    sizes: ["Small", "Medium", "Large"],
-    categoryName: "Home & Lifestyle"
-  },
-  {
-    name: "Aromatherapy Soy Candle",
-    price: 950,
-    description: "Hand-poured soy candle with lavender and eucalyptus essential oils for relaxation.",
-    stock: 100,
-    images: ["https://images.unsplash.com/photo-1602874801007-bd458bb1b8b6?w=800&q=80"],
-    tags: ["lifestyle", "gift"],
-    sizes: ["250g"],
-    categoryName: "Home & Lifestyle"
-  },
-  {
-    name: "Woven Cotton Throw",
-    price: 3200,
-    description: "Soft woven cotton throw blanket in a herringbone pattern, perfect for the sofa.",
-    stock: 45,
-    images: ["https://images.unsplash.com/photo-1580480055273-228ff5388ef8?w=800&q=80"],
-    tags: ["home", "essential"],
+    tags: ["home", "luxury"],
     sizes: ["Standard"],
     categoryName: "Home & Lifestyle"
-  },
-
-  // --- ACCESSORIES ---
-  {
-    name: "Midnight Chronograph Watch",
-    price: 12500,
-    description: "Sleek black watch with leather strap and precise Japanese movement.",
-    stock: 10,
-    images: ["https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=800&q=80"],
-    tags: ["exclusive", "trending"],
-    sizes: ["One Size"],
-    categoryName: "Luxury Accessories"
-  },
-  {
-    name: "Aviator Gold Sunglasses",
-    price: 1800,
-    description: "Classic aviator style with polarized lenses and 18k gold-toned frames.",
-    stock: 35,
-    images: ["https://images.unsplash.com/photo-1511499767390-90342f16b147?w=800&q=80"],
-    tags: ["summer"],
-    sizes: ["One Size"],
-    categoryName: "Luxury Accessories"
-  },
-  {
-    name: "Leather Minimalist Wallet",
-    price: 1200,
-    description: "Slim genuine leather wallet with RFID blocking and multiple card slots.",
-    stock: 100,
-    images: ["https://images.unsplash.com/photo-1627123424574-724758594e93?w=800&q=80"],
-    tags: ["essential"],
-    sizes: ["One Size"],
-    categoryName: "Luxury Accessories"
-  },
-  {
-    name: "Silk Pocket Square",
-    price: 850,
-    description: "100% silk pocket square with a subtle paisley pattern to complete your formal look.",
-    stock: 60,
-    images: ["https://images.unsplash.com/photo-1520903074183-febab54c9524?w=800&q=80"],
-    tags: ["men", "professional"],
-    sizes: ["One Size"],
-    categoryName: "Luxury Accessories"
   }
 ];
 
@@ -273,56 +172,28 @@ const contentData = [
   },
   {
     type: 'banner',
-    title: 'Winter Essentials',
-    imageUrl: 'https://images.unsplash.com/photo-1486308510493-aa64833637bc?w=1200',
-    linkUrl: '/products?tag=winter',
-    position: 'hero',
-    order: 2,
+    title: 'Flash Sale is Live!',
+    imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
+    linkUrl: '/products?tag=sale',
+    position: 'promotional',
+    order: 1,
     isActive: true,
-    meta: { subtitle: 'Stay warm and stylish', buttonText: 'Explore Collection' }
-  },
-  {
-    type: 'banner',
-    title: 'Kids Adventure Sale',
-    imageUrl: 'https://images.unsplash.com/photo-1519704943920-1844582b7bac?w=1200',
-    linkUrl: '/products?category=Kids',
-    position: 'hero',
-    order: 3,
-    isActive: true,
-    meta: { subtitle: 'Up to 30% off on kids wear', buttonText: 'Shop Kids' }
+    meta: { subtitle: 'Up to 50% off on selected items', buttonText: 'Shop the Sale' }
   },
   {
     type: 'announcement',
-    title: 'FREE SHIPPING ON ALL ORDERS OVER RS 2000! SHOP NOW',
+    title: '🔥 FLASH SALE: UP TO 50% OFF! LIMITED TIME ONLY 🔥',
     isActive: true,
-    meta: { backgroundColor: '#000000', textColor: '#ffffff' }
+    meta: { backgroundColor: '#ff0000', textColor: '#ffffff' }
   },
   {
     type: 'category_feature',
-    title: 'FREE SHIPPING',
+    title: 'FAST DELIVERY',
     imageUrl: 'https://cdn-icons-png.flaticon.com/512/709/709790.png',
     linkUrl: '#',
     order: 1,
     isActive: true,
-    meta: { subtitle: 'On all orders over Rs. 2000' }
-  },
-  {
-    type: 'category_feature',
-    title: '7-DAY RETURNS',
-    imageUrl: 'https://cdn-icons-png.flaticon.com/512/1585/1585141.png',
-    linkUrl: '#',
-    order: 2,
-    isActive: true,
-    meta: { subtitle: 'Hassle-free exchange policy' }
-  },
-  {
-    type: 'category_feature',
-    title: '100% SECURE',
-    imageUrl: 'https://cdn-icons-png.flaticon.com/512/1160/1160285.png',
-    linkUrl: '#',
-    order: 3,
-    isActive: true,
-    meta: { subtitle: 'Payments are fully encrypted' }
+    meta: { subtitle: 'Delivery within 2-3 business days' }
   }
 ];
 
@@ -361,7 +232,7 @@ const reseedEverything = async () => {
     await Content.bulkCreate(contentData);
     console.log("✅ CONTENT SEEDED SUCCESSFULLY!");
 
-    console.log(`✅ STORE MASSIVELY POPULATED WITH ${productsData.length} PREMIUM PRODUCTS!`);
+    console.log(`✅ STORE FULLY POPULATED WITH FLASH SALE, NEW ARRIVALS, AND TRENDING DATA!`);
     process.exit(0);
   } catch (error) {
     console.error("❌ Reseed failed:", error);
