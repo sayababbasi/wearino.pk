@@ -81,6 +81,29 @@ app.use(morgan("dev"));
 app.get("/api/health", (req, res) => {
   res.json({ success: true, status: "UP", timestamp: new Date() });
 });
+
+// Detailed status for debugging
+app.get("/api/status", async (req, res) => {
+  const status = {
+    backend: "UP",
+    environment: process.env.NODE_ENV || "development",
+    database: "CHECKING...",
+    cloudinary: process.env.CLOUDINARY_CLOUD_NAME ? "CONFIGURED" : "MISSING",
+    stripe: process.env.STRIPE_SECRET_KEY ? "CONFIGURED" : "MISSING",
+    timestamp: new Date()
+  };
+
+  try {
+    await connectDB(); // Ensure we try to connect
+    const { sequelize } = await import("./config/db.js");
+    await sequelize.authenticate();
+    status.database = "CONNECTED";
+  } catch (e) {
+    status.database = `ERROR: ${e.message}`;
+  }
+
+  res.json(status);
+});
 app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
 
 
