@@ -70,7 +70,12 @@ app.use(express.json());
 // Parse URL-encoded bodies (form submissions) in addition to JSON
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://wearino-pk.vercel.app', 'https://wearino-pk.onrender.com'],
+  origin: [
+    'http://localhost:3000', 
+    'https://wearino-pk.vercel.app', 
+    'https://wearino-pk.onrender.com',
+    'https://wearino.revoticai.com'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
