@@ -1,6 +1,6 @@
 @echo off
 echo ====================================================
-echo 🚀 WEARINO.PK QUICK DEPLOYMENT & SYNC TOOL
+echo 🚀 WEARINO.PK QUICK DEPLOYMENT TOOL
 echo ====================================================
 
 echo 1. Committing latest connection fixes...
