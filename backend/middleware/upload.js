@@ -6,19 +6,21 @@ import multer from "multer";
 // Load environment variables
 dotenv.config();
 
-// Configure Cloudinary
+// Configure Cloudinary with aggressive sanitization for Render/Windows environments
+const cleanEnvVar = (val) => val ? val.toString().trim().replace(/[\r\n]/g, '') : '';
+
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME?.trim(),
-  api_key: process.env.CLOUDINARY_API_KEY?.trim(),
-  api_secret: process.env.CLOUDINARY_API_SECRET?.trim(),
+  cloud_name: cleanEnvVar(process.env.CLOUDINARY_CLOUD_NAME),
+  api_key: cleanEnvVar(process.env.CLOUDINARY_API_KEY),
+  api_secret: cleanEnvVar(process.env.CLOUDINARY_API_SECRET),
 });
 
 // Check if Cloudinary is properly configured
 const isCloudinaryConfigured =
-  process.env.CLOUDINARY_CLOUD_NAME &&
-  process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloud_name' &&
-  process.env.CLOUDINARY_API_KEY &&
-  process.env.CLOUDINARY_API_KEY !== 'your_api_key';
+  cleanEnvVar(process.env.CLOUDINARY_CLOUD_NAME) &&
+  cleanEnvVar(process.env.CLOUDINARY_CLOUD_NAME) !== 'your_cloud_name' &&
+  cleanEnvVar(process.env.CLOUDINARY_API_KEY) &&
+  cleanEnvVar(process.env.CLOUDINARY_API_KEY) !== 'your_api_key';
 
 let storage;
 
