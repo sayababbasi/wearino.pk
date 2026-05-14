@@ -1,73 +1,54 @@
-import dotenv from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
+import dotenv from "dotenv";
 
-// Load environment variables
 dotenv.config();
 
-// Configure Cloudinary with aggressive sanitization for Render/Windows environments
-const cleanEnvVar = (val) => val ? val.toString().trim().replace(/[\r\n]/g, '') : '';
+// Aggressive sanitization: strip everything except alphanumeric, underscore, and hyphen
+const clean = (val) => val ? val.toString().replace(/[^\w-]/g, '').trim() : '';
+
+const cloudName = clean(process.env.CLOUDINARY_CLOUD_NAME);
+const apiKey = clean(process.env.CLOUDINARY_API_KEY);
+const apiSecret = clean(process.env.CLOUDINARY_API_SECRET);
+
+console.log(`[CLOUDINARY] Initializing with Cloud Name: ${cloudName} (Length: ${cloudName.length})`);
 
 cloudinary.config({
-  cloud_name: cleanEnvVar(process.env.CLOUDINARY_CLOUD_NAME),
-  api_key: cleanEnvVar(process.env.CLOUDINARY_API_KEY),
-  api_secret: cleanEnvVar(process.env.CLOUDINARY_API_SECRET),
+  cloud_name: cloudName,
+  api_key: apiKey,
+  api_secret: apiSecret,
 });
 
-// Check if Cloudinary is properly configured
-const isCloudinaryConfigured =
-  cleanEnvVar(process.env.CLOUDINARY_CLOUD_NAME) &&
-  cleanEnvVar(process.env.CLOUDINARY_CLOUD_NAME) !== 'your_cloud_name' &&
-  cleanEnvVar(process.env.CLOUDINARY_API_KEY) &&
-  cleanEnvVar(process.env.CLOUDINARY_API_KEY) !== 'your_api_key';
+const isCloudinaryConfigured = cloudName && cloudName !== 'your_cloud_name' && apiKey;
 
 let storage;
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const uploadDir = path.join(__dirname, '../uploads');
-
 if (isCloudinaryConfigured) {
-  console.log("Using Cloudinary Storage");
+  console.log("[CLOUDINARY] Using Cloudinary Storage");
   storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-      folder: "product_images",
-      allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      folder: 'wearino_products',
+      allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+      transformation: [{ width: 1000, height: 1000, crop: 'limit' }],
     },
   });
 } else {
-  console.log("Using Local Disk Storage (Cloudinary not configured)");
-  // Ensure the uploads directory exists
-  if (!fs.existsSync(uploadDir)){
-      fs.mkdirSync(uploadDir, { recursive: true });
-  }
-
+  console.log("[CLOUDINARY] Cloudinary not configured, falling back to local storage");
   storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      cb(null, uploadDir); // Use absolute path defined above
+      cb(null, "uploads/");
     },
     filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const ext = file.originalname.split('.').pop();
-      cb(null, file.fieldname + '-' + uniqueSuffix + '.' + ext);
-    }
+      cb(null, `${Date.now()}-${file.originalname}`);
+    },
   });
 }
 
-const upload = multer({
+const upload = multer({ 
   storage: storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only images are allowed'), false);
-    }
-  }
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
+
 export default upload;
