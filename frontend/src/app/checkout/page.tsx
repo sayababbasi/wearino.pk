@@ -150,7 +150,7 @@ export default function CheckoutPage() {
         productIds
       });
 
-      if (response.success && response.data) {
+      if (!response.error && response.data) {
         setAppliedCoupon(response.data.coupon);
         showToast(`Coupon applied! You save ${formatPrice(response.data.coupon.discountAmount)}`, 'success');
       } else {
@@ -268,7 +268,7 @@ export default function CheckoutPage() {
               itemToRemove.selectedSize, 
               itemToRemove.selectedColor
             );
-            showToast('A stale item was removed from your cart. Please try again.', 'warning');
+            showToast('A stale item was removed from your cart. Please try again.', 'info');
           }
         }
       } else {
