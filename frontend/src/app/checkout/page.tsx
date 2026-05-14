@@ -251,7 +251,30 @@ export default function CheckoutPage() {
 
     } catch (error: any) {
       console.error('Order creation error:', error);
-      showToast(error.message || 'Failed to place order. Please try again.', 'error');
+      
+      // Handle "Product not found" (Stale cart items)
+      if (error.message && error.message.includes('Product (ID:')) {
+        const match = error.message.match(/ID: (\d+)/);
+        const productId = match ? match[1] : null;
+        
+        if (productId) {
+          // Remove the specific item that's causing the issue
+          // items are objects, useCartStore has removeItem(productId, size, color)
+          // For simplicity, find all items with this ID and remove them
+          const itemToRemove = items.find(i => (i.product_id || (i as any).id)?.toString() === productId);
+          if (itemToRemove) {
+            useCartStore.getState().removeItem(
+              (itemToRemove.product_id || (itemToRemove as any).id).toString(), 
+              itemToRemove.selectedSize, 
+              itemToRemove.selectedColor
+            );
+            showToast('A stale item was removed from your cart. Please try again.', 'warning');
+          }
+        }
+      } else {
+        showToast(error.message || 'Failed to place order. Please try again.', 'error');
+      }
+      
       setIsProcessing(false);
     }
   };

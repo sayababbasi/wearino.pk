@@ -74,7 +74,12 @@ export const createOrder = async (req, res) => {
       
       if (!dbProduct) {
         await t.rollback();
-        return res.status(404).json({ success: false, message: `Product not found: ${productId}` });
+        return res.status(404).json({ 
+          success: false, 
+          message: `Product (ID: ${productId}) no longer exists. Your cart may be out of date. Please clear your cart and try again.`,
+          code: 'PRODUCT_NOT_FOUND',
+          productId: productId
+        });
       }
 
       // Stock Validation
