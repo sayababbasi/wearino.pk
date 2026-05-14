@@ -151,7 +151,7 @@ const contentData = [
   {
     type: 'banner',
     title: 'THE WEARINO PRECISION',
-    imageUrl: '/images/herobanner1.png',
+    imageUrl: 'https://wearino-pk.vercel.app/images/herobanner1.png',
     linkUrl: '/products?category=Accessories',
     position: 'hero',
     order: 1,
@@ -161,7 +161,7 @@ const contentData = [
   {
     type: 'banner',
     title: 'TIMELESS LUXURY',
-    imageUrl: '/images/bannerbanner2.png',
+    imageUrl: 'https://wearino-pk.vercel.app/images/bannerbanner2.png',
     linkUrl: '/products?category=Accessories',
     position: 'hero',
     order: 2,
