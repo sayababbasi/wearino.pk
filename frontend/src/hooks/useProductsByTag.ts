@@ -17,7 +17,7 @@ export function useProductsByTag(tag?: string) {
         // Map frontend tag names to backend tag names
         const tagMap: Record<string, string> = {
           'sale': 'sale',
-          'new_arrivals': 'new',
+          'new_arrivals': 'new_arrivals',
           'trending': 'trending',
           'new': 'new',
           'flash_sale': 'sale',

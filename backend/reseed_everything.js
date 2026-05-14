@@ -16,176 +16,160 @@ const categoriesData = [
 ];
 
 const productsData = [
+  // --- NEW ARRIVALS (Tag: 'new_arrivals') ---
+  {
+    name: "Oversized Wool Blend Coat",
+    price: 12500,
+    description: "Elegant wool blend coat with a relaxed fit, perfect for layering.",
+    stock: 15,
+    images: ["https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=800&q=80"],
+    tags: ["new_arrivals", "trending"],
+    sizes: ["S", "M", "L"],
+    categoryName: "Women's Collection"
+  },
+  {
+    name: "Knitted Polo Sweater",
+    price: 4200,
+    description: "Premium knitted polo with a soft touch and classic collar.",
+    stock: 25,
+    images: ["https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=800&q=80"],
+    tags: ["new_arrivals"],
+    sizes: ["M", "L", "XL"],
+    categoryName: "Men's Apparel"
+  },
+  {
+    name: "Leather Crossbody Bag",
+    price: 6800,
+    description: "Handcrafted leather bag with adjustable strap and gold hardware.",
+    stock: 20,
+    images: ["https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&q=80"],
+    tags: ["new_arrivals", "luxury"],
+    sizes: ["One Size"],
+    categoryName: "Luxury Accessories"
+  },
+  {
+    name: "High-Top Suede Sneakers",
+    price: 8500,
+    description: "Stylish high-top sneakers in premium charcoal suede.",
+    stock: 30,
+    images: ["https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=800&q=80"],
+    tags: ["new_arrivals", "trending"],
+    sizes: ["40", "41", "42", "43", "44"],
+    categoryName: "Footwear"
+  },
+  {
+    name: "Linen Wide-Leg Trousers",
+    price: 3800,
+    description: "Breathable linen trousers with a flattering wide-leg silhouette.",
+    stock: 40,
+    images: ["https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=800&q=80"],
+    tags: ["new_arrivals"],
+    sizes: ["26", "28", "30", "32"],
+    categoryName: "Women's Collection"
+  },
+  {
+    name: "Minimalist Trench Coat",
+    price: 9800,
+    description: "A timeless trench coat with clean lines and water-resistant finish.",
+    stock: 12,
+    images: ["https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800&q=80"],
+    tags: ["new_arrivals", "essential"],
+    sizes: ["S", "M", "L"],
+    categoryName: "Men's Apparel"
+  },
+  {
+    name: "Classic Leather Loafers",
+    price: 11500,
+    description: "Hand-stitched leather loafers with a comfortable cushioned sole.",
+    stock: 18,
+    images: ["https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=800&q=80"],
+    tags: ["new_arrivals"],
+    sizes: ["40", "41", "42", "43", "44"],
+    categoryName: "Footwear"
+  },
+  {
+    name: "Silk Emerald Slip Dress",
+    price: 6500,
+    description: "Elegant emerald green silk dress for evening wear.",
+    stock: 14,
+    images: ["https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80"],
+    tags: ["new_arrivals", "trending"],
+    sizes: ["XS", "S", "M"],
+    categoryName: "Women's Collection"
+  },
+
   // --- FLASH SALE (Tag: 'sale') ---
   {
-    name: "Red Velvet Party Dress",
-    price: 4500,
-    discount: 25,
-    description: "Stunning red velvet dress for special occasions.",
-    stock: 20,
-    images: ["https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800&q=80"],
+    name: "Midnight Silk Wrap Dress",
+    price: 7500,
+    discount: 40,
+    description: "Luxurious silk wrap dress in a deep midnight blue.",
+    stock: 10,
+    images: ["https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&q=80"],
     tags: ["sale", "trending"],
     sizes: ["S", "M", "L"],
     categoryName: "Women's Collection"
   },
   {
-    name: "Summer Linen Shirt",
-    price: 1800,
-    discount: 15,
-    description: "Lightweight linen shirt for hot summer days.",
-    stock: 50,
-    images: ["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&q=80"],
-    tags: ["sale"],
-    sizes: ["M", "L", "XL"],
-    categoryName: "Men's Apparel"
-  },
-  {
-    name: "Glitter Sparkle Flats",
-    price: 2200,
-    discount: 30,
-    description: "Comfortable flats with a touch of sparkle.",
-    stock: 35,
-    images: ["https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800&q=80"],
-    tags: ["sale", "kids"],
-    sizes: ["28", "30", "32"],
-    categoryName: "Kids' Corner"
-  },
-  {
-    name: "Crystal Scented Candle",
-    price: 1200,
+    name: "Canvas Weekender Bag",
+    price: 5200,
     discount: 20,
-    description: "Beautifully scented candle with hidden crystals.",
-    stock: 100,
-    images: ["https://images.unsplash.com/photo-1602874801007-bd458bb1b8b6?w=800&q=80"],
-    tags: ["sale"],
-    sizes: ["One Size"],
-    categoryName: "Home & Lifestyle"
-  },
-
-  // --- NEW ARRIVALS (Tag: 'new_arrivals') ---
-  {
-    name: "Modern Art Print Tee",
-    price: 1500,
-    description: "Heavyweight cotton tee with a unique modern art print.",
-    stock: 40,
-    images: ["https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=800&q=80"],
-    tags: ["new_arrivals"],
-    sizes: ["S", "M", "L", "XL"],
-    categoryName: "Men's Apparel"
-  },
-  {
-    name: "Silk Emerald Slip Dress",
-    price: 5800,
-    description: "Pure silk slip dress in a vibrant emerald green.",
-    stock: 15,
-    images: ["https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80"],
-    tags: ["new_arrivals", "trending"],
-    sizes: ["S", "M"],
-    categoryName: "Women's Collection"
-  },
-  {
-    name: "Tech-Mesh Sport Shoes",
-    price: 7200,
-    description: "Advanced running shoes with breathable tech-mesh.",
+    description: "Durable canvas bag with leather trim, perfect for short trips.",
     stock: 25,
-    images: ["https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=800&q=80"],
-    tags: ["new_arrivals"],
-    sizes: ["40", "41", "42", "43"],
-    categoryName: "Footwear"
-  },
-
-  // --- TRENDING (Tag: 'trending') ---
-  {
-    name: "Classic Leather Biker Jacket",
-    price: 9500,
-    description: "Authentic leather biker jacket with silver hardware.",
-    stock: 10,
-    images: ["https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=80"],
-    tags: ["trending", "luxury"],
-    sizes: ["M", "L", "XL"],
-    categoryName: "Men's Apparel"
-  },
-  {
-    name: "Gold Pendant Necklace",
-    price: 3200,
-    description: "Elegant 18k gold plated pendant necklace.",
-    stock: 45,
-    images: ["https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&q=80"],
-    tags: ["trending"],
+    images: ["https://images.unsplash.com/photo-1544816153-199d88b713c0?w=800&q=80"],
+    tags: ["sale"],
     sizes: ["One Size"],
     categoryName: "Luxury Accessories"
   },
   {
-    name: "Boho Chic Tunic",
-    price: 2400,
-    description: "Embroidered cotton tunic for a relaxed bohemian look.",
-    stock: 30,
-    images: ["https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=800&q=80"],
-    tags: ["trending"],
-    sizes: ["S", "M", "L"],
-    categoryName: "Women's Collection"
+    name: "Cotton Cargo Pants",
+    price: 3200,
+    discount: 30,
+    description: "Relaxed fit cargo pants in premium cotton twill.",
+    stock: 35,
+    images: ["https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=800&q=80"],
+    tags: ["sale"],
+    sizes: ["30", "32", "34", "36"],
+    categoryName: "Men's Apparel"
   },
 
-  // --- REGULAR PRODUCTS ---
+  // --- TRENDING (Tag: 'trending') ---
   {
-    name: "Classic White Sneakers",
-    price: 3800,
-    description: "Clean, minimalist white sneakers for everyday wear.",
-    stock: 60,
-    images: ["https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800&q=80"],
-    tags: ["essential"],
-    sizes: ["38", "39", "40", "41", "42"],
-    categoryName: "Footwear"
-  },
-  {
-    name: "Dinosaur Adventure Backpack",
-    price: 2800,
-    description: "Fun and functional backpack for little explorers.",
-    stock: 20,
-    images: ["https://images.unsplash.com/photo-1519704943920-1844582b7bac?w=800&q=80"],
-    tags: ["kids"],
-    sizes: ["One Size"],
-    categoryName: "Kids' Corner"
-  },
-  {
-    name: "Marble Top Coffee Table",
+    name: "Vintage Aviator Jacket",
     price: 15500,
-    description: "Modern coffee table with a real marble top and gold legs.",
-    stock: 5,
-    images: ["https://images.unsplash.com/photo-1581783898377-1c85bf937427?w=800&q=80"],
-    tags: ["home", "luxury"],
-    sizes: ["Standard"],
-    categoryName: "Home & Lifestyle"
+    description: "Sherpa-lined aviator jacket with a distressed leather finish.",
+    stock: 8,
+    images: ["https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&q=80"],
+    tags: ["trending", "luxury"],
+    sizes: ["M", "L", "XL"],
+    categoryName: "Men's Apparel"
   }
 ];
 
 const contentData = [
+  // HERO BANNERS
   {
     type: 'banner',
-    title: 'New Season Arrivals',
-    imageUrl: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200',
-    linkUrl: '/products',
+    title: 'THE WEARINO PRECISION',
+    imageUrl: 'https://wearino-pk.vercel.app/images/hero/banner-1.jpg',
+    linkUrl: '/products?category=Accessories',
     position: 'hero',
     order: 1,
     isActive: true,
-    meta: { subtitle: 'Shop the latest trends', buttonText: 'Shop Now' }
+    meta: { subtitle: 'Elite Tech & Lifestyle Collection', buttonText: 'Shop Now' }
   },
   {
     type: 'banner',
-    title: 'Flash Sale is Live!',
-    imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
-    linkUrl: '/products?tag=sale',
-    position: 'promotional',
-    order: 1,
+    title: 'TIMELESS LUXURY',
+    imageUrl: 'https://wearino-pk.vercel.app/images/hero/banner-2.jpg',
+    linkUrl: '/products?category=Accessories',
+    position: 'hero',
+    order: 2,
     isActive: true,
-    meta: { subtitle: 'Up to 50% off on selected items', buttonText: 'Shop the Sale' }
+    meta: { subtitle: 'Curated Essentials for the Modern Individual', buttonText: 'Explore' }
   },
-  {
-    type: 'announcement',
-    title: '🔥 FLASH SALE: UP TO 50% OFF! LIMITED TIME ONLY 🔥',
-    isActive: true,
-    meta: { backgroundColor: '#ff0000', textColor: '#ffffff' }
-  },
+
+  // CATEGORY FEATURES (The Highlights Bar)
   {
     type: 'category_feature',
     title: 'FAST DELIVERY',
@@ -194,6 +178,41 @@ const contentData = [
     order: 1,
     isActive: true,
     meta: { subtitle: 'Delivery within 2-3 business days' }
+  },
+  {
+    type: 'category_feature',
+    title: '7-DAY RETURNS',
+    imageUrl: 'https://cdn-icons-png.flaticon.com/512/1585/1585141.png',
+    linkUrl: '#',
+    order: 2,
+    isActive: true,
+    meta: { subtitle: 'Hassle-free exchange policy' }
+  },
+  {
+    type: 'category_feature',
+    title: 'SECURE PAYMENT',
+    imageUrl: 'https://cdn-icons-png.flaticon.com/512/1160/1160285.png',
+    linkUrl: '#',
+    order: 3,
+    isActive: true,
+    meta: { subtitle: '100% encrypted transactions' }
+  },
+  {
+    type: 'category_feature',
+    title: '24/7 SUPPORT',
+    imageUrl: 'https://cdn-icons-png.flaticon.com/512/1067/1067566.png',
+    linkUrl: '#',
+    order: 4,
+    isActive: true,
+    meta: { subtitle: 'Always here to help you' }
+  },
+
+  // ANNOUNCEMENT
+  {
+    type: 'announcement',
+    title: '🔥 FLASH SALE: UP TO 50% OFF! LIMITED TIME ONLY 🔥',
+    isActive: true,
+    meta: { backgroundColor: '#000000', textColor: '#ffffff' }
   }
 ];
 
@@ -232,7 +251,7 @@ const reseedEverything = async () => {
     await Content.bulkCreate(contentData);
     console.log("✅ CONTENT SEEDED SUCCESSFULLY!");
 
-    console.log(`✅ STORE FULLY POPULATED WITH FLASH SALE, NEW ARRIVALS, AND TRENDING DATA!`);
+    console.log(`✅ ALL SITE SECTIONS POPULATED!`);
     process.exit(0);
   } catch (error) {
     console.error("❌ Reseed failed:", error);
