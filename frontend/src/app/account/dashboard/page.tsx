@@ -15,10 +15,12 @@ import {
   ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api } from '@/src/lib/api';
 import { useWishlistStore } from '@/src/lib/store';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
@@ -32,18 +34,19 @@ export default function DashboardPage() {
     const fetchDashboardData = async () => {
       try {
         const ordersData = await api.getOrders() as any;
-        const allOrders = ordersData?.orders || [];
+        const allOrders = Array.isArray(ordersData) ? ordersData : (ordersData?.orders || []);
         
         const pending = allOrders.filter((o: any) => 
           ['pending', 'processing', 'shipped'].includes(o.status?.toLowerCase())
         ).length;
 
         const reviewsData = await api.getMyReviews() as any;
+        const allReviews = Array.isArray(reviewsData) ? reviewsData : (reviewsData?.reviews || []);
         
         setStats({
           totalOrders: allOrders.length,
           pendingOrders: pending,
-          reviewsCount: Array.isArray(reviewsData) ? reviewsData.length : (reviewsData?.reviews?.length || 0),
+          reviewsCount: allReviews.length,
         });
         
         setRecentOrders(allOrders.slice(0, 5));

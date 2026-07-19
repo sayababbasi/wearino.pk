@@ -13,6 +13,7 @@ import Setting from "../models/Setting.js";
 import DeliveryZone from "../models/DeliveryZone.js";
 import PaymentMethod from "../models/PaymentMethod.js";
 import Notification from "../models/Notification.js";
+import { clearCache } from "../middleware/cacheMiddleware.js";
 
 export const createOrder = async (req, res) => {
   const t = await sequelize.transaction();
@@ -192,6 +193,9 @@ export const createOrder = async (req, res) => {
     }
 
     await t.commit();
+
+    // Invalidate API cache to refresh product stock
+    clearCache();
 
     // 10. Post-creation Services (Notifications/Links)
     const productNames = orderItemsData.map(i => i.name).join(", ");

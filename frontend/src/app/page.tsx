@@ -18,19 +18,19 @@ import CategoryFeaturesBar from '@/src/components/home/CategoryFeaturesBar';
 const defaultHeroSlides = [
   {
     id: 1,
-    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200',
-    title: 'New Season Arrivals',
-    subtitle: 'Shop the latest trends',
+    image: 'https://wearino.revoticai.com/images/herobanner1.png',
+    title: 'THE WEARINO PRECISION',
+    subtitle: 'Elite Tech & Lifestyle Collection',
     cta: 'Shop Now',
-    link: '/products',
+    link: '/products?category=Accessories',
   },
   {
     id: 2,
-    image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1200',
-    title: 'Summer Collection',
-    subtitle: 'Fresh styles for sunny days',
+    image: 'https://wearino.revoticai.com/images/bannerbanner2.png',
+    title: 'TIMELESS LUXURY',
+    subtitle: 'Curated Essentials for the Modern Individual',
     cta: 'Explore',
-    link: '/categories/women',
+    link: '/products?category=Accessories',
   },
 ];
 

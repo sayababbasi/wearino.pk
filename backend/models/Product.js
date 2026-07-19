@@ -202,6 +202,17 @@ const Product = sequelize.define("Product", {
 }, {
   tableName: "products",
   timestamps: true,
+  indexes: [
+    {
+      fields: ['categoryId']
+    },
+    {
+      fields: ['status']
+    },
+    {
+      fields: ['isTrending']
+    }
+  ]
 });
 
 /**

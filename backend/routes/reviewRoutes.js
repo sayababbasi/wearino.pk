@@ -7,6 +7,8 @@ import express from "express";
 import {
     createReview,
     getProductReviews,
+    getUserReviews,
+    getPendingReviewProducts,
     updateReview,
     deleteReview,
     adminDeleteReview,
@@ -22,6 +24,8 @@ const router = express.Router();
 router.get("/reviews/product/:productId", getProductReviews);
 
 // Authenticated user routes
+router.get("/reviews/pending-products", protect, getPendingReviewProducts);
+router.get("/reviews/me", protect, getUserReviews);
 router.post("/reviews", protect, createReview);
 router.put("/reviews/:id", protect, updateReview);
 router.delete("/reviews/:id", protect, deleteReview);

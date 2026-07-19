@@ -254,7 +254,7 @@ export default function Header() {
                             <User size={15} /> Admin Dashboard
                           </Link>
                         )}
-                        <Link href="/account/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                        <Link href="/dashboard" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                           <LayoutDashboard size={15} /> My Dashboard
                         </Link>
                         <Link href="/account/orders" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
@@ -308,7 +308,7 @@ export default function Header() {
               </button>
 
               {/* Mobile: account icon */}
-              <Link href={isMounted && user ? "/account/dashboard" : "/auth/login"} className="lg:hidden p-1 text-gray-700">
+              <Link href={isMounted && user ? "/dashboard" : "/auth/login"} className="lg:hidden p-1 text-gray-700">
                 <User size={22} className="stroke-[1.5]" />
               </Link>
             </div>

@@ -71,9 +71,9 @@ export default function LoginPage() {
           localStorage.setItem('rememberMe', 'true');
         }
 
-        // Redirect to home or dashboard after 1.5 seconds
+        // Redirect to dashboard after 1.5 seconds
         setTimeout(() => {
-          router.push('/');
+          router.push('/dashboard');
         }, 1500);
       }
     } catch (err) {

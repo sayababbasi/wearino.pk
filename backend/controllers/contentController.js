@@ -8,6 +8,7 @@
 
 import Content from "../models/Content.js";
 import Product from "../models/Product.js";
+import { clearCache } from "../middleware/cacheMiddleware.js";
 
 /**
  * Get All Content
@@ -106,9 +107,11 @@ export const createContent = async (req, res) => {
                     attributes: ['id', 'name', 'price', 'images', 'description', 'stock']
                 }]
             });
+            clearCache();
             return res.status(201).json({ success: true, data: { content: contentWithProduct } });
         }
 
+        clearCache();
         res.status(201).json({ success: true, data: { content: newContent } });
     } catch (error) {
         console.error("Error creating content:", error);
@@ -185,9 +188,11 @@ export const updateContent = async (req, res) => {
                     attributes: ['id', 'name', 'price', 'images', 'description', 'stock']
                 }]
             });
+            clearCache();
             return res.status(200).json({ success: true, data: { content: contentWithProduct } });
         }
 
+        clearCache();
         res.status(200).json({ success: true, data: { content } });
     } catch (error) {
         console.error("Error updating content:", error);
@@ -211,6 +216,7 @@ export const deleteContent = async (req, res) => {
 
         await content.destroy();
 
+        clearCache();
         res.status(200).json({ success: true, message: "Content deleted successfully" });
     } catch (error) {
         console.error("Error deleting content:", error);

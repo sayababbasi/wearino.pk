@@ -15,6 +15,7 @@ import {
 } from "../controllers/contentController.js";
 import { protect, isAdmin, authorize } from "../middleware/authMiddleware.js";
 import upload from "../middleware/upload.js";
+import { cacheMiddleware } from "../middleware/cacheMiddleware.js";
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ const router = express.Router();
  * Public Routes
  */
 // Get all content (filtered by query params)
-router.get("/", getContent);
+router.get("/", cacheMiddleware(300), getContent);
 
 /**
  * Protected Routes (Admin/Manager)

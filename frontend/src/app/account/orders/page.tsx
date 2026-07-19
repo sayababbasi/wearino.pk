@@ -54,9 +54,10 @@ function OrdersContent() {
           api.getMyReviews()
         ]);
         
-        const allOrders = ordersData?.orders || [];
+        const allOrders = Array.isArray(ordersData) ? ordersData : (ordersData?.orders || []);
         setOrders(allOrders);
-        setUserReviews(reviewsData?.reviews || []);
+        const allReviews = Array.isArray(reviewsData) ? reviewsData : (reviewsData?.reviews || []);
+        setUserReviews(allReviews);
         
         if (orderIdParam) {
           const found = allOrders.find((o: any) => o.id.toString() === orderIdParam);

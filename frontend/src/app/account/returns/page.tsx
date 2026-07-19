@@ -43,11 +43,12 @@ export default function ReturnsPage() {
         api.getReturnRequests()
       ]);
 
-      const orders = ordersData?.orders || [];
+      const orders = Array.isArray(ordersData) ? ordersData : (ordersData?.orders || []);
       const delivered = orders.filter((o: any) => o.status?.toLowerCase() === 'delivered');
       
       setDeliveredOrders(delivered);
-      setReturnRequests(returnsData?.requests || []);
+      const returnRequestsList = Array.isArray(returnsData) ? returnsData : (returnsData?.requests || returnsData?.returns || []);
+      setReturnRequests(returnRequestsList);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {

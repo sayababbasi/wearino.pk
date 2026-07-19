@@ -131,6 +131,109 @@ export const getProductReviews = async (req, res) => {
 };
 
 /**
+ * Get current user's reviews
+ */
+export const getUserReviews = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const reviews = await Review.findAll({
+            where: { userId },
+            include: [
+                {
+                    model: Product,
+                    as: "product",
+                    attributes: ['id', 'name', 'images']
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.json({
+            success: true,
+            reviews
+        });
+    } catch (error) {
+        console.error("Error fetching user reviews:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch user reviews" });
+    }
+};
+
+/**
+ * Get products that the user has purchased (delivered) but not yet reviewed
+ */
+export const getPendingReviewProducts = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Find all delivered orders for the user
+        const userOrders = await Order.findAll({
+            where: { 
+              userId,
+              status: 'delivered'
+            },
+            include: [{
+                model: OrderItem,
+                include: [{
+                    model: Product,
+                    as: 'product',
+                    attributes: ['id', 'name', 'images', 'price']
+                }]
+            }]
+        });
+
+        // Extract all products from delivered orders
+        const purchasedProductsMap = new Map();
+        userOrders.forEach(order => {
+            order.OrderItems.forEach(item => {
+                if (item.product && item.productId) {
+                    // Only add if not already added to avoid duplicates
+                    if (!purchasedProductsMap.has(item.productId)) {
+                        purchasedProductsMap.set(item.productId, {
+                            ...item.product.toJSON(),
+                            orderId: order.id,
+                            purchasedAt: order.createdAt
+                        });
+                    }
+                }
+            });
+        });
+
+        const purchasedProductIds = Array.from(purchasedProductsMap.keys());
+
+        if (purchasedProductIds.length === 0) {
+            return res.json({ success: true, products: [] });
+        }
+
+        // Find reviews the user has already written for these products
+        const existingReviews = await Review.findAll({
+            where: {
+                userId,
+                productId: {
+                    [Op.in]: purchasedProductIds
+                }
+            },
+            attributes: ['productId']
+        });
+
+        const reviewedProductIds = new Set(existingReviews.map(r => r.productId));
+
+        // Filter out products that have already been reviewed
+        const pendingProducts = Array.from(purchasedProductsMap.values())
+            .filter(product => !reviewedProductIds.has(product.id))
+            .sort((a, b) => new Date(b.purchasedAt) - new Date(a.purchasedAt));
+
+        res.json({
+            success: true,
+            products: pendingProducts
+        });
+    } catch (error) {
+        console.error("Error fetching pending review products:", error);
+        res.status(500).json({ success: false, message: "Failed to fetch pending review products" });
+    }
+};
+
+/**
  * Update user's own review
  */
 export const updateReview = async (req, res) => {

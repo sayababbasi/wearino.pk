@@ -9,6 +9,7 @@ import {
 } from "../controllers/productController.js";
 import upload from "../middleware/upload.js";
 import { protect, isAdmin, optionalAuth, authorize } from "../middleware/authMiddleware.js";
+import { cacheMiddleware } from "../middleware/cacheMiddleware.js";
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ const router = express.Router();
  *       500:
  *         description: Server error
  */
-router.get("/", getAllProducts);
+router.get("/", cacheMiddleware(300), getAllProducts);
 
 /**
  * @swagger
@@ -51,7 +52,7 @@ router.get("/", getAllProducts);
  *       500:
  *         description: Server error
  */
-router.get("/top", getTopSellingProducts);
+router.get("/top", cacheMiddleware(300), getTopSellingProducts);
 
 /**
  * @swagger
@@ -74,7 +75,7 @@ router.get("/top", getTopSellingProducts);
  *       500:
  *         description: Server error
  */
-router.get("/:id", getProductById);
+router.get("/:id", cacheMiddleware(300), getProductById);
 
 /**
  * @swagger

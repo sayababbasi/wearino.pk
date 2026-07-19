@@ -23,6 +23,7 @@ import Category from "../models/Category.js";
 import ProductVariant from "../models/ProductVariant.js";
 import OrderItem from "../models/OrderItem.js";
 import { Sequelize, Op } from "sequelize";
+import { clearCache } from "../middleware/cacheMiddleware.js";
 
 /**
  * Create Product
@@ -158,6 +159,9 @@ export const createProduct = async (req, res) => {
         console.error("Error parsing secondaryCategoryIds:", e);
       }
     }
+
+    // Flush cache since products updated
+    clearCache();
 
     // Return success response with created product
     res.status(201).json({
@@ -692,6 +696,9 @@ export const updateProduct = async (req, res) => {
       await product.setSecondaryCategories(ids);
     }
 
+    // Flush cache since products updated
+    clearCache();
+
     res.status(200).json({
       success: true,
       message: "Product updated successfully",
@@ -767,6 +774,9 @@ export const deleteProduct = async (req, res) => {
      * Sequelize will handle any CASCADE deletions based on model associations.
      */
     await product.destroy();
+
+    // Flush cache since products updated
+    clearCache();
 
     // Return success response
     res.status(200).json({

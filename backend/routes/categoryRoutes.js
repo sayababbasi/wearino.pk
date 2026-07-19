@@ -8,6 +8,7 @@ import {
 } from "../controllers/categoryController.js";
 import { protect, isAdmin, authorize } from "../middleware/authMiddleware.js";
 import upload from "../middleware/upload.js";
+import { cacheMiddleware } from "../middleware/cacheMiddleware.js";
 const router = express.Router();
 
 /**
@@ -29,7 +30,7 @@ const router = express.Router();
  *       500:
  *         description: Server error
  */
-router.get("/", getAllCategories);
+router.get("/", cacheMiddleware(300), getAllCategories);
 
 /**
  * @swagger
@@ -52,7 +53,7 @@ router.get("/", getAllCategories);
  *       500:
  *         description: Server error
  */
-router.get("/:id", getCategoryById);
+router.get("/:id", cacheMiddleware(300), getCategoryById);
 
 /**
  * @swagger

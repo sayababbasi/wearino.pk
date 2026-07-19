@@ -1,5 +1,6 @@
 import Category from "../models/Category.js";
 import Product from "../models/Product.js"; // Import Product
+import { clearCache } from "../middleware/cacheMiddleware.js";
 
 // ✅ CREATE Category
 export const createCategory = async (req, res) => {
@@ -28,6 +29,8 @@ export const createCategory = async (req, res) => {
       status,
       parentId: parentId ? parseInt(parentId) : null
     });
+
+    clearCache();
     res.status(201).json({ success: true, message: "Category created successfully", data: { category } });
   } catch (error) {
     console.error("Create category error:", error.message);
@@ -97,6 +100,7 @@ export const updateCategory = async (req, res) => {
 
     await category.save();
 
+    clearCache();
     res.status(200).json({ success: true, message: "Category updated successfully", data: { category } });
   } catch (error) {
     console.error("Update category error:", error.message);
@@ -114,6 +118,8 @@ export const deleteCategory = async (req, res) => {
     }
 
     await category.destroy();
+    
+    clearCache();
     res.status(200).json({ message: "Category deleted successfully" });
   } catch (error) {
     console.error("Delete category error:", error.message);

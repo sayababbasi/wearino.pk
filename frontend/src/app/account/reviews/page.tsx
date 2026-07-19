@@ -45,8 +45,8 @@ export default function ReviewsPage() {
       ]);
       
       // Correctly extract arrays from response objects
-      setReviews(myReviewsData?.reviews || []);
-      setPendingProducts(productsToReview?.products || []);
+      setReviews(Array.isArray(myReviewsData) ? myReviewsData : (myReviewsData?.reviews || []));
+      setPendingProducts(Array.isArray(productsToReview) ? productsToReview : (productsToReview?.products || []));
     } catch (error) {
       console.error('Error fetching reviews:', error);
     } finally {

@@ -59,6 +59,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: '/dashboard',
+        destination: '/account/dashboard',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
